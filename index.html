@@ -89,7 +89,7 @@
     </a-scene>
 
     <script>
-      const REVERSE_FLIGHT = true; 
+      const REVERSE_FLIGHT = false; 
       const plane = document.querySelector('#plane');
       const balloon = document.querySelector('#balloon');
       const arrowContainer = document.querySelector('#arrow-container');
@@ -148,7 +148,7 @@
         
         // 2. Adjust for camera's horizontal rotation (Y-axis)
         // We add 180 because atan2(0, -z) is 180deg
-        let finalRadarAngle = angleToPlane + cRot.y + 180;
+        let finalRadarAngle = angleToPlane + cRot.y;
 
         // 3. Apply to UI
         arrowContainer.style.transform = `translate(-50%, -50%) rotate(${finalRadarAngle}deg)`;
