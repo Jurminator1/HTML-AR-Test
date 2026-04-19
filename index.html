@@ -11,8 +11,9 @@
         display: grid; grid-template-columns: 70px 70px 70px; gap: 15px; z-index: 1000;
       }
       button {
-        width: 70px; height: 70px; background: rgba(0, 0, 0, 0.6); color: white;
-        border: 2px solid white; border-radius: 50%; font-size: 14px; touch-action: manipulation;
+        width: 70px; height: 70px; background: rgba(0, 0, 0, 0.7); color: white;
+        border: 2px solid #00ff00; border-radius: 50%; font-size: 12px; font-weight: bold;
+        touch-action: manipulation;
       }
     </style>
   </head>
@@ -25,7 +26,7 @@
 
     <a-scene 
       embedded 
-      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;" 
+      arjs="sourceType: webcam; debugUIEnabled: false;" 
       renderer="alpha: true; colorManagement: true;">
       
       <a-assets>
@@ -34,23 +35,26 @@
 
       <a-entity id="plane" 
                 gltf-model="#planeModel" 
-                position="0 1 -5" 
+                position="0 1.2 -1" 
                 scale="0.02 0.02 0.02"
                 rotation="0 0 0">
+          <a-sphere radius="0.1" color="red" opacity="0.5"></a-sphere>
       </a-entity>
 
       <a-entity camera look-controls></a-entity>
       
-      <a-light type="ambient" intensity="1"></a-light>
+      <a-light type="ambient" intensity="1.5"></a-light>
+      <a-light type="directional" position="1 1 1"></a-light>
     </a-scene>
 
     <script>
       const plane = document.querySelector('#plane');
       let move = { up: false, down: false, left: false, right: false };
       
-      const forwardSpeed = 0.04; 
-      const turnSpeed = 2.5;     
-      const verticalSpeed = 0.04;
+      // Adjusted speeds for the tiny scale
+      const forwardSpeed = 0.015; 
+      const turnSpeed = 3.0;     
+      const verticalSpeed = 0.015;
 
       const bind = (id, dir) => {
         const btn = document.getElementById(id);
@@ -66,19 +70,17 @@
         let pos = plane.getAttribute('position');
         let rot = plane.getAttribute('rotation');
 
-        // Steering
+        // Steering logic
         if (move.left) rot.y += turnSpeed;
         if (move.right) rot.y -= turnSpeed;
-
-        // Up/Down
         if (move.up) pos.y += verticalSpeed;
         if (move.down) pos.y -= verticalSpeed;
 
-        // Forward Math - Swapped the signs (+/-) to fix backwards flying
+        // Forward Math
         const angleRad = rot.y * (Math.PI / 180);
         
-        // Changing these signs fixes the "backwards" issue
-        // If it's still backwards, change + to - or vice versa
+        // At 0.02 scale, the center of the world is (0,0,0). 
+        // We move based on the local Y rotation.
         pos.x += Math.sin(angleRad) * forwardSpeed;
         pos.z += Math.cos(angleRad) * forwardSpeed;
 
