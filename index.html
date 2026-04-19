@@ -2,16 +2,14 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>AR Plane Controller</title>
+  <title>AR Plane Game</title>
 
-  <!-- A-Frame + AR.js -->
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.5/aframe/build/aframe-ar.js"></script>
 
   <style>
     body { margin: 0; overflow: hidden; }
 
-    /* UI controls */
     .controls {
       position: fixed;
       bottom: 20px;
@@ -37,26 +35,25 @@
 
 <div class="controls">
   <button onclick="moveForward()">↑</button>
+  <button onclick="moveDown()">↓</button>
   <button onclick="turnLeft()">←</button>
   <button onclick="turnRight()">→</button>
 </div>
 
-<a-scene embedded arjs>
+<a-scene embedded arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
 
-  <!-- Marker -->
   <a-marker preset="hiro">
 
-    <!-- Plane (replace with your model later) -->
-    <a-box id="plane"
-           position="0 0.5 0"
-           depth="1"
-           height="0.2"
-           width="0.5"
-           color="blue">
-    </a-box>
+    <!-- Plane model -->
+    <a-entity 
+      id="plane"
+      gltf-model="plane.glb"
+      scale="0.5 0.5 0.5"
+      position="0 0.5 0">
+    </a-entity>
 
     <!-- Camera rig -->
-    <a-entity id="cameraRig" position="0 2 4">
+    <a-entity id="cameraRig">
       <a-entity camera></a-entity>
     </a-entity>
 
@@ -73,10 +70,15 @@
 
   function moveForward() {
     const pos = plane.getAttribute("position");
-
     pos.x -= Math.sin(rotationY) * speed;
     pos.z -= Math.cos(rotationY) * speed;
+    plane.setAttribute("position", pos);
+    updateCamera();
+  }
 
+  function moveDown() {
+    const pos = plane.getAttribute("position");
+    pos.y -= 0.1;
     plane.setAttribute("position", pos);
     updateCamera();
   }
@@ -96,8 +98,8 @@
   function updateCamera() {
     const pos = plane.getAttribute("position");
 
-    const camX = pos.x + Math.sin(rotationY) * 4;
-    const camZ = pos.z + Math.cos(rotationY) * 4;
+    const camX = pos.x + Math.sin(rotationY) * 3;
+    const camZ = pos.z + Math.cos(rotationY) * 3;
 
     cameraRig.setAttribute("position", {
       x: camX,
@@ -105,9 +107,7 @@
       z: camZ
     });
 
-    cameraRig.object3D.lookAt(
-      plane.object3D.position
-    );
+    cameraRig.object3D.lookAt(plane.object3D.position);
   }
 </script>
 
