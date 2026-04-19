@@ -6,7 +6,7 @@
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-      body { margin: 0; overflow: hidden; background-color: transparent; font-family: sans-serif; }
+      body { margin: 0; overflow: hidden; background-color: transparent; font-family: 'Courier New', Courier, monospace; }
       
       #ui-layer {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -14,27 +14,26 @@
       }
 
       #score-tag {
-        position: absolute; top: 20px; left: 20px; color: #fff;
-        background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 10px; 
-        border: 2px solid #ffff00; pointer-events: auto; font-weight: bold;
+        position: absolute; top: 20px; left: 20px; color: #ffff00;
+        background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 5px; 
+        border: 2px solid #ffff00; pointer-events: auto; font-size: 20px; font-weight: bold;
       }
 
-      /* THE REAL ARROW */
+      /* THE RADAR */
       #radar-center {
         position: absolute; top: 50%; left: 50%;
-        width: 4px; height: 4px; transform: translate(-50%, -50%);
+        width: 10px; height: 10px; transform: translate(-50%, -50%);
       }
 
       #arrow {
         position: absolute;
-        bottom: 60px; /* Distance from center of screen */
-        left: -15px;
-        width: 30px; height: 40px;
+        bottom: 80px; /* How far from the center the arrow sits */
+        left: -20px;
+        width: 40px; height: 50px;
         background-color: #ffff00;
-        /* Custom arrow shape with tail */
-        clip-path: polygon(50% 0%, 100% 40%, 70% 40%, 70% 100%, 30% 100%, 30% 40%, 0% 40%);
-        filter: drop-shadow(0 0 5px gold);
-        transition: transform 0.1s linear;
+        /* A very clear arrow shape */
+        clip-path: polygon(50% 0%, 100% 45%, 75% 45%, 75% 100%, 25% 100%, 25% 45%, 0% 45%);
+        filter: drop-shadow(0 0 10px rgba(255, 255, 0, 0.9));
       }
 
       #controls-container {
@@ -47,10 +46,10 @@
       
       button {
         width: 70px; height: 70px; background: rgba(0, 0, 0, 0.8); color: white;
-        border: 2px solid #fff; border-radius: 50%; font-weight: bold;
+        border: 2px solid #ffff00; border-radius: 50%; font-weight: bold;
         touch-action: manipulation;
       }
-      button:active { background: white; color: black; }
+      button:active { background: #ffff00; color: #000; }
     </style>
   </head>
   <body>
@@ -78,7 +77,6 @@
       </a-assets>
 
       <a-entity id="plane" gltf-model="#planeModel" position="0 1 -3" scale="0.05 0.05 0.05"></a-entity>
-
       <a-entity id="balloon-container"></a-entity>
 
       <a-entity camera look-controls id="main-cam"></a-entity>
@@ -93,75 +91,85 @@
       const cam = document.querySelector('#main-cam');
       
       let score = 0;
+      let gameActive = false; // Prevents score starting early
       let move = { up: false, down: false, left: false, right: false };
-      const speed = 0.05;
-      const turnSpeed = 2.5;
+      const speed = 0.06;
+      const turnSpeed = 3.0;
 
-      // 1. Setup Controls
+      // Controls
       const bind = (id, dir) => {
         const btn = document.getElementById(id);
-        const start = (e) => { e.preventDefault(); move[dir] = true; };
+        const start = (e) => { e.preventDefault(); move[dir] = true; gameActive = true; };
         const end = () => move[dir] = false;
         btn.addEventListener('touchstart', start); btn.addEventListener('touchend', end);
         btn.addEventListener('mousedown', start); btn.addEventListener('mouseup', end);
       };
       ['up', 'down', 'left', 'right'].forEach(dir => bind(dir, dir));
 
-      // 2. Spawn 5 Balloons
+      // Spawn Balloons FAR away from the start
       function createBalloon() {
         const b = document.createElement('a-entity');
-        const x = (Math.random() - 0.5) * 20;
-        const y = Math.random() * 5 + 1;
-        const z = (Math.random() - 0.5) * 20;
-        b.setAttribute('position', `${x} ${y} ${z}`);
+        resetBalloonPosition(b);
         b.innerHTML = `
-          <a-sphere color="#ff2222" radius="0.4"></a-sphere>
-          <a-cone color="#ffa500" radius-bottom="0.15" height="0.5" position="0 -0.5 0"></a-cone>
+          <a-sphere color="#ff0000" radius="0.4"></a-sphere>
+          <a-cone color="#ffaa00" radius-bottom="0.15" height="0.5" position="0 -0.5 0"></a-cone>
         `;
         balloonContainer.appendChild(b);
       }
 
+      function resetBalloonPosition(el) {
+        // Keeps balloons at least 5 meters away from the center to prevent auto-scoring
+        let x = (Math.random() - 0.5) * 30;
+        let z = (Math.random() - 0.5) * 30;
+        if (Math.abs(x) < 5) x += 10; 
+        if (Math.abs(z) < 5) z -= 10;
+        el.setAttribute('position', `${x} ${Math.random() * 6 + 1} ${z}`);
+      }
+
       for(let i=0; i<5; i++) createBalloon();
 
-      // 3. Game Loop
       function update() {
         let pPos = plane.getAttribute('position');
         let pRot = plane.getAttribute('rotation');
         let cRot = cam.getAttribute('rotation');
 
-        // Movement
+        // Flight logic
         if (move.left) pRot.y += turnSpeed;
         if (move.right) pRot.y -= turnSpeed;
         if (move.up) pPos.y += speed;
         if (move.down) pPos.y -= speed;
 
         const rad = pRot.y * (Math.PI / 180);
-        pPos.x -= Math.sin(rad) * speed; // Standard flight direction
+        // Moved to -= for both to ensure "forward" is consistent
+        pPos.x -= Math.sin(rad) * speed; 
         pPos.z -= Math.cos(rad) * speed;
 
         plane.setAttribute('position', pPos);
         plane.setAttribute('rotation', pRot);
 
-        // Check Collision with all 5 balloons
-        const balloons = balloonContainer.querySelectorAll('a-entity');
-        balloons.forEach(b => {
-          let bPos = b.getAttribute('position');
-          let d = Math.sqrt(Math.pow(pPos.x-bPos.x,2)+Math.pow(pPos.y-bPos.y,2)+Math.pow(pPos.z-bPos.z,2));
-          if (d < 0.8) {
-            score++;
-            scoreEl.innerText = score;
-            // Respawn this balloon
-            b.setAttribute('position', `${(Math.random()-0.5)*20} ${Math.random()*5+1} ${(Math.random()-0.5)*20}`);
-          }
-        });
+        // Score logic - Only runs once player starts moving
+        if (gameActive) {
+            const balloons = balloonContainer.querySelectorAll('a-entity');
+            balloons.forEach(b => {
+                let bPos = b.getAttribute('position');
+                let d = Math.sqrt(Math.pow(pPos.x-bPos.x,2)+Math.pow(pPos.y-bPos.y,2)+Math.pow(pPos.z-bPos.z,2));
+                if (d < 1.0) {
+                    score++;
+                    scoreEl.innerText = score;
+                    resetBalloonPosition(b);
+                }
+            });
+        }
 
-        // RADAR LOGIC: Point at plane relative to camera view
-        // Calculate vector from camera (0,0,0) to plane
+        // --- FIXED RADAR LOGIC ---
+        // 1. Calculate the angle from the camera to the plane
         let angleToPlane = Math.atan2(pPos.x, pPos.z) * (180 / Math.PI);
-        // Combine with camera's current look direction
-        let finalAngle = angleToPlane + cRot.y + 180;
         
-        radarCenter.style.transform = `translate(-50%, -50%) rotate(${finalAngle}deg)`;
+        // 2. Adjust for camera Y rotation. 
+        // We use subtraction here to fix the "moving left when plane goes right" issue.
+        let finalAngle = angleToPlane - cRot.y + 180;
+        
+        radarCenter.style.transform = `translate(-50%, -50%) rotate(${-finalAngle}deg)`;
 
         requestAnimationFrame(update);
       }
