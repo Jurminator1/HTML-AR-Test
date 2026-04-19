@@ -5,88 +5,126 @@
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-      body { margin: 0; overflow: hidden; background-color: transparent; }
+      body { margin: 0; overflow: hidden; background-color: transparent; font-family: sans-serif; }
+      
+      /* HUD Controls */
+      #ui-container { position: fixed; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
       #controls {
-        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-        display: grid; grid-template-columns: 70px 70px 70px; gap: 15px; z-index: 1000;
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        display: grid; grid-template-columns: 70px 70px 70px; gap: 15px; pointer-events: auto;
       }
       button {
         width: 70px; height: 70px; background: rgba(0, 0, 0, 0.6); color: white;
         border: 2px solid white; border-radius: 50%; font-size: 14px; touch-action: manipulation;
       }
+
+      /* Scoreboard */
+      #score-tag { position: absolute; top: 20px; left: 20px; color: white; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 20px; font-size: 20px; }
+
+      /* Directional Arrow */
+      #arrow {
+        position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
+        margin-top: -25px; margin-left: -25px;
+        border-left: 10px solid transparent; border-right: 10px solid transparent;
+        border-bottom: 20px solid yellow; /* Simple triangle arrow */
+        transform-origin: center; display: none;
+      }
     </style>
   </head>
   <body>
 
-    <div id="controls">
-      <div></div><button id="up">UP</button><div></div>
-      <button id="left">LEFT</button><button id="down">DOWN</button><button id="right">RIGHT</button>
+    <div id="ui-container">
+      <div id="score-tag">Score: <span id="score">0</span></div>
+      <div id="arrow"></div>
+      <div id="controls">
+        <div></div><button id="up">UP</button><div></div>
+        <button id="left">LEFT</button><button id="down">DOWN</button><button id="right">RIGHT</button>
+      </div>
     </div>
 
-    <a-scene 
-      embedded 
-      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;" 
-      renderer="alpha: true; colorManagement: true;">
-      
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="alpha: true;">
       <a-assets>
         <a-asset-item id="planeModel" src="plane.glb"></a-asset-item>
       </a-assets>
 
-      <a-entity id="plane" 
-                gltf-model="#planeModel" 
-                position="0 1 -3" 
-                scale="0.05 0.05 0.05"
-                rotation="0 0 180">
+      <a-entity id="plane" gltf-model="#planeModel" position="0 1 -3" scale="0.05 0.05 0.05" rotation="0 0 0"></a-entity>
+
+      <a-entity id="balloon" position="2 1.5 -5">
+        <a-sphere color="red" radius="0.3"></a-sphere>
+        <a-cone color="orange" radius-bottom="0.1" radius-top="0" height="0.4" position="0 -0.4 0"></a-cone>
       </a-entity>
 
-      <a-entity camera look-controls></a-entity>
+      <a-entity id="rig" camera look-controls></a-entity>
       <a-light type="ambient" intensity="1.2"></a-light>
     </a-scene>
 
     <script>
       const plane = document.querySelector('#plane');
-      let move = { up: false, down: false, left: false, right: false };
+      const balloon = document.querySelector('#balloon');
+      const arrow = document.querySelector('#arrow');
+      const scoreEl = document.querySelector('#score');
+      const camera = document.querySelector('[camera]');
       
+      let score = 0;
+      let move = { up: false, down: false, left: false, right: false };
       const forwardSpeed = 0.04; 
       const turnSpeed = 2.5;     
-      const verticalSpeed = 0.04;
 
+      // Setup controls
       const bind = (id, dir) => {
         const btn = document.getElementById(id);
         btn.ontouchstart = (e) => { e.preventDefault(); move[dir] = true; };
         btn.ontouchend = () => move[dir] = false;
-        btn.onmousedown = () => move[dir] = true;
-        btn.onmouseup = () => move[dir] = false;
       };
-
       ['up', 'down', 'left', 'right'].forEach(dir => bind(dir, dir));
 
       function update() {
-        let pos = plane.getAttribute('position');
-        let rot = plane.getAttribute('rotation');
+        let pPos = plane.getAttribute('position');
+        let pRot = plane.getAttribute('rotation');
+        let cRot = camera.getAttribute('rotation'); // Current phone rotation
 
-        // Steering
-        if (move.left) rot.y += turnSpeed;
-        if (move.right) rot.y -= turnSpeed;
+        // 1. Movement Logic
+        if (move.left) pRot.y += turnSpeed;
+        if (move.right) pRot.y -= turnSpeed;
+        if (move.up) pPos.y += 0.04;
+        if (move.down) pPos.y -= 0.04;
 
-        // Up/Down
-        if (move.up) pos.y += verticalSpeed;
-        if (move.down) pos.y -= verticalSpeed;
+        const angleRad = pRot.y * (Math.PI / 180);
+        pPos.x -= Math.sin(angleRad) * forwardSpeed;
+        pPos.z -= Math.cos(angleRad) * forwardSpeed;
 
-        // Forward Math
-        const angleRad = rot.y * (Math.PI / 180);
-        
-        // With rotation 0, -Math.sin and -Math.cos will move it 
-        // away from the starting camera position.
-        pos.x -= Math.sin(angleRad) * forwardSpeed;
-        pos.z -= Math.cos(angleRad) * forwardSpeed;
+        plane.setAttribute('position', pPos);
+        plane.setAttribute('rotation', pRot);
 
-        plane.setAttribute('position', pos);
-        plane.setAttribute('rotation', rot);
-        
+        // 2. Collision Detection (Plane vs Balloon)
+        let bPos = balloon.getAttribute('position');
+        let dist = Math.sqrt(
+          Math.pow(pPos.x - bPos.x, 2) + 
+          Math.pow(pPos.y - bPos.y, 2) + 
+          Math.pow(pPos.z - bPos.z, 2)
+        );
+
+        if (dist < 0.6) {
+          score++;
+          scoreEl.innerText = score;
+          // Move balloon to a new random spot
+          balloon.setAttribute('position', {
+            x: (Math.random() - 0.5) * 10,
+            y: Math.random() * 2 + 0.5,
+            z: (Math.random() - 0.5) * 10
+          });
+        }
+
+        // 3. Arrow Logic (Points to plane)
+        // We only show arrow if plane is "off screen" (simplified logic)
+        // This calculates the 2D angle relative to your phone's view
+        let angleToPlane = Math.atan2(pPos.x, pPos.z) * (180 / Math.PI);
+        let arrowRotation = angleToPlane + cRot.y; 
+        arrow.style.display = 'block';
+        arrow.style.transform = `rotate(${arrowRotation}deg) translateY(-100px)`;
+
         requestAnimationFrame(update);
       }
-      
       update();
     </script>
   </body>
