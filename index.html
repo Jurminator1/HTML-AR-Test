@@ -37,14 +37,25 @@
         pointer-events: auto;
       }
 
-      .btn-row { display: flex; justify-content: center; gap: 15px; margin: 5px 0; }
+      .btn-row { display: flex; justify-content: center; gap: 10px; margin: 5px 0; }
       
       button {
-        width: 70px; height: 70px; background: rgba(0, 0, 0, 0.8); color: white;
+        width: 65px; height: 65px; background: rgba(0, 0, 0, 0.8); color: white;
         border: 2px solid #ffff00; border-radius: 50%; font-weight: bold;
         touch-action: manipulation;
       }
       button:active { background: #ffff00; color: #000; }
+
+      /* Special styling for the Freeze Button */
+      #freeze {
+        background: rgba(0, 80, 255, 0.7);
+        border-color: #00ccff;
+      }
+      #freeze.active {
+        background: #00ccff;
+        color: #000;
+        box-shadow: 0 0 15px #00ccff;
+      }
     </style>
   </head>
   <body>
@@ -54,11 +65,15 @@
       <div id="radar-center"><div id="arrow"></div></div>
 
       <div id="controls-container">
-        <div class="btn-row"><button id="up">UP</button></div>
+        <div class="btn-row">
+          <button id="up">UP</button>
+        </div>
         <div class="btn-row">
           <button id="left">LEFT</button>
+          <button id="freeze">FREEZE</button> <button id="right">RIGHT</button>
+        </div>
+        <div class="btn-row">
           <button id="down">DOWN</button>
-          <button id="right">RIGHT</button>
         </div>
       </div>
     </div>
@@ -81,12 +96,26 @@
       const radarCenter = document.querySelector('#radar-center');
       const scoreEl = document.querySelector('#score');
       const cam = document.querySelector('#main-cam');
+      const freezeBtn = document.querySelector('#freeze');
       
       let score = 0;
       let gameActive = false;
+      let isFrozen = false; // New State
       let move = { up: false, down: false, left: false, right: false };
       const speed = 0.06;
       const turnSpeed = 3.0;
+
+      // Toggle Freeze Function
+      freezeBtn.addEventListener('click', (e) => {
+        isFrozen = !isFrozen;
+        if (isFrozen) {
+          freezeBtn.classList.add('active');
+          freezeBtn.innerText = "UNFREEZE";
+        } else {
+          freezeBtn.classList.remove('active');
+          freezeBtn.innerText = "FREEZE";
+        }
+      });
 
       const bind = (id, dir) => {
         const btn = document.getElementById(id);
@@ -121,35 +150,37 @@
         let pPos = plane.getAttribute('position');
         let pRot = plane.getAttribute('rotation');
         let cRot = cam.getAttribute('rotation');
-        let cPos = cam.getAttribute('position'); // Track the player's physical walking
+        let cPos = cam.getAttribute('position');
 
-        if (move.left) pRot.y += turnSpeed;
-        if (move.right) pRot.y -= turnSpeed;
-        if (move.up) pPos.y += speed;
-        if (move.down) pPos.y -= speed;
+        // Only move the plane if NOT frozen
+        if (!isFrozen) {
+            if (move.left) pRot.y += turnSpeed;
+            if (move.right) pRot.y -= turnSpeed;
+            if (move.up) pPos.y += speed;
+            if (move.down) pPos.y -= speed;
 
-        const rad = pRot.y * (Math.PI / 180);
-        pPos.x -= Math.sin(rad) * speed; 
-        pPos.z -= Math.cos(rad) * speed;
+            const rad = pRot.y * (Math.PI / 180);
+            pPos.x -= Math.sin(rad) * speed; 
+            pPos.z -= Math.cos(rad) * speed;
 
-        plane.setAttribute('position', pPos);
-        plane.setAttribute('rotation', pRot);
+            plane.setAttribute('position', pPos);
+            plane.setAttribute('rotation', pRot);
 
-        if (gameActive) {
-            const balloons = balloonContainer.querySelectorAll('a-entity');
-            balloons.forEach(b => {
-                let bPos = b.getAttribute('position');
-                let d = Math.sqrt(Math.pow(pPos.x-bPos.x,2)+Math.pow(pPos.y-bPos.y,2)+Math.pow(pPos.z-bPos.z,2));
-                if (d < 1.0) {
-                    score++;
-                    scoreEl.innerText = score;
-                    resetBalloonPosition(b);
-                }
-            });
+            if (gameActive) {
+                const balloons = balloonContainer.querySelectorAll('a-entity');
+                balloons.forEach(b => {
+                    let bPos = b.getAttribute('position');
+                    let d = Math.sqrt(Math.pow(pPos.x-bPos.x,2)+Math.pow(pPos.y-bPos.y,2)+Math.pow(pPos.z-bPos.z,2));
+                    if (d < 1.0) {
+                        score++;
+                        scoreEl.innerText = score;
+                        resetBalloonPosition(b);
+                    }
+                });
+            }
         }
 
-        // Radar math now uses camera position (cPos) as the origin instead of 0,0,0
-        // This ensures the radar stays accurate even if you walk 10 feet away.
+        // Radar still works while frozen so you can find the parked plane!
         let dx = pPos.x - cPos.x;
         let dz = pPos.z - cPos.z;
         let angleToPlane = Math.atan2(dx, dz) * (180 / Math.PI);
