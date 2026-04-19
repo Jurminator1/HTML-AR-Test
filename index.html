@@ -48,49 +48,51 @@
     </a-scene>
 
     <script>
-      const plane = document.querySelector('#plane');
-      let move = { up: false, down: false, left: false, right: false };
-      
-      // Adjusted speeds for the tiny scale
-      const forwardSpeed = 0.015; 
-      const turnSpeed = 3.0;     
-      const verticalSpeed = 0.015;
+  const plane = document.querySelector('#plane');
+let move = { up: false, down: false, left: false, right: false };
 
-      const bind = (id, dir) => {
-        const btn = document.getElementById(id);
-        btn.ontouchstart = (e) => { e.preventDefault(); move[dir] = true; };
-        btn.ontouchend = () => move[dir] = false;
-        btn.onmousedown = () => move[dir] = true;
-        btn.onmouseup = () => move[dir] = false;
-      };
+// Adjusted speeds for 0.02 scale
+const forwardSpeed = 0.01; 
+const turnSpeed = 2.5;     
+const verticalSpeed = 0.01;
 
-      ['up', 'down', 'left', 'right'].forEach(dir => bind(dir, dir));
+const bind = (id, dir) => {
+  const btn = document.getElementById(id);
+  btn.ontouchstart = (e) => { e.preventDefault(); move[dir] = true; };
+  btn.ontouchend = () => move[dir] = false;
+  btn.onmousedown = () => move[dir] = true;
+  btn.onmouseup = () => move[dir] = false;
+};
 
-      function update() {
-        let pos = plane.getAttribute('position');
-        let rot = plane.getAttribute('rotation');
+['up', 'down', 'left', 'right'].forEach(dir => bind(dir, dir));
 
-        // Steering logic
-        if (move.left) rot.y += turnSpeed;
-        if (move.right) rot.y -= turnSpeed;
-        if (move.up) pos.y += verticalSpeed;
-        if (move.down) pos.y -= verticalSpeed;
+function update() {
+  let pos = plane.getAttribute('position');
+  let rot = plane.getAttribute('rotation');
 
-        // Forward Math
-        const angleRad = rot.y * (Math.PI / 180);
-        
-        // At 0.02 scale, the center of the world is (0,0,0). 
-        // We move based on the local Y rotation.
-        pos.x += Math.sin(angleRad) * forwardSpeed;
-        pos.z += Math.cos(angleRad) * forwardSpeed;
+  // 1. Steering (Rotation around Y axis)
+  if (move.left) rot.y += turnSpeed;
+  if (move.right) rot.y -= turnSpeed;
 
-        plane.setAttribute('position', pos);
-        plane.setAttribute('rotation', rot);
-        
-        requestAnimationFrame(update);
-      }
-      
-      update();
+  // 2. Altitude (Movement along Y axis)
+  if (move.up) pos.y += verticalSpeed;
+  if (move.down) pos.y -= verticalSpeed;
+
+  // 3. Constant Forward Movement
+  // We use the Y rotation to determine the X and Z direction
+  const angleRad = rot.y * (Math.PI / 180);
+  
+  // These calculations ensure it moves horizontally
+  pos.x += Math.sin(angleRad) * forwardSpeed;
+  pos.z += Math.cos(angleRad) * forwardSpeed;
+
+  plane.setAttribute('position', pos);
+  plane.setAttribute('rotation', rot);
+  
+  requestAnimationFrame(update);
+}
+
+update();
     </script>
   </body>
 </html>
