@@ -129,7 +129,21 @@
           balloon.setAttribute('position', `${(Math.random()-0.5)*12} ${Math.random()*2+1} ${(Math.random()-0.5)*12}`);
         }
 
-        // Radar Arrow
+        // // Radar Arrow Logic
+const camera = document.querySelector('[camera]');
+const camRot = camera.getAttribute('rotation');
+const pPos = plane.getAttribute('position');
+
+// 1. Get the angle from the origin to the plane on the horizontal plane
+// Math.atan2(x, z) gives the angle in radians
+let angleToPlane = Math.atan2(pPos.x, pPos.z) * (180 / Math.PI);
+
+// 2. Subtract the camera's current Y rotation so the arrow 
+// stays relative to where the player is looking
+let relativeAngle = angleToPlane + camRot.y + 180; 
+
+// 3. Apply the rotation
+arrow.style.transform = `translate(-50%, -50%) rotate(${relativeAngle}deg) translateY(-80px)`; Arrow
         let angleToPlane = Math.atan2(pPos.x, pPos.z) * (180 / Math.PI);
         arrow.style.transform = `translate(-50%, -50%) rotate(${angleToPlane}deg) translateY(-80px)`;
 
