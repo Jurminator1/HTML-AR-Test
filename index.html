@@ -1,101 +1,56 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR Plane Pilot</title>
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-      /* Style for our on-screen controls */
-      #controls {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: grid;
-        grid-template-columns: 60px 60px 60px;
-        gap: 10px;
-        z-index: 999;
-      }
-      button {
-        width: 60px;
-        height: 60px;
-        background: rgba(255, 255, 255, 0.5);
-        border: 2px solid white;
-        border-radius: 10px;
-        font-weight: bold;
-      }
+      #controls { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: 60px 60px 60px; gap: 10px; z-index: 999; }
+      button { width: 60px; height: 60px; background: rgba(255,255,255,0.8); border: none; border-radius: 50%; font-weight: bold; }
     </style>
   </head>
   <body style="margin: 0; overflow: hidden;">
 
     <div id="controls">
-      <div></div>
-      <button id="up">UP</button>
-      <div></div>
-      <button id="left">LEFT</button>
-      <button id="down">DOWN</button>
-      <button id="right">RIGHT</button>
+      <div></div><button id="up">UP</button><div></div>
+      <button id="left">L</button><button id="down">DN</button><button id="right">R</button>
     </div>
 
-    <a-scene xr-mode-ui="enabled: true" webxr="optionalFeatures: hit-test;">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
       <a-assets>
         <a-asset-item id="planeModel" src="plane.glb"></a-asset-item>
       </a-assets>
 
       <a-entity id="plane" 
                 gltf-model="#planeModel" 
-                position="0 1.5 -3" 
-                scale="0.5 0.5 0.5"
-                rotation="0 180 0">
+                position="0 0 -5" 
+                scale="0.5 0.5 0.5">
       </a-entity>
 
-      <a-light type="ambient" intensity="0.5"></a-light>
-      <a-light type="directional" position="1 1 1"></a-light>
-      
-      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity camera></a-entity>
     </a-scene>
 
     <script>
       const plane = document.querySelector('#plane');
-      const speed = 0.05;
-      let moveState = { up: false, down: false, left: false, right: false };
+      let move = { up: false, down: false, left: false, right: false };
 
-      // Helper to handle button presses
-      const setupButton = (id, direction) => {
+      const bind = (id, dir) => {
         const btn = document.getElementById(id);
-        btn.addEventListener('mousedown', () => moveState[direction] = true);
-        btn.addEventListener('mouseup', () => moveState[direction] = false);
-        btn.addEventListener('touchstart', (e) => { e.preventDefault(); moveState[direction] = true; });
-        btn.addEventListener('touchend', () => moveState[direction] = false);
+        btn.onmousedown = btn.ontouchstart = (e) => { e.preventDefault(); move[dir] = true; };
+        btn.onmouseup = btn.ontouchend = () => move[dir] = false;
       };
 
-      setupButton('up', 'up');
-      setupButton('down', 'down');
-      setupButton('left', 'left');
-      setupButton('right', 'right');
+      ['up', 'down', 'left', 'right'].forEach(dir => bind(dir, dir));
 
-      // The Game Loop: Runs every frame
-      function tick() {
-        let pos = plane.getAttribute('position');
-        let rot = plane.getAttribute('rotation');
-
-        if (moveState.up) pos.y += speed;
-        if (moveState.down) pos.y -= speed;
-        if (moveState.left) {
-            pos.x -= speed;
-            rot.z = 15; // Slight tilt for realism
-        } else if (moveState.right) {
-            pos.x += speed;
-            rot.z = -15;
-        } else {
-            rot.z = 0; // Level out
-        }
-
-        plane.setAttribute('position', pos);
-        plane.setAttribute('rotation', rot);
-        requestAnimationFrame(tick);
+      function update() {
+        let p = plane.getAttribute('position');
+        if (move.up) p.y += 0.05;
+        if (move.down) p.y -= 0.05;
+        if (move.left) p.x -= 0.05;
+        if (move.right) p.x += 0.05;
+        plane.setAttribute('position', p);
+        requestAnimationFrame(update);
       }
-
-      tick();
+      update();
     </script>
   </body>
 </html>
