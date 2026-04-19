@@ -1,115 +1,101 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>AR Plane Game</title>
+  <head>
+    <title>AR Plane Pilot</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <style>
+      /* Style for our on-screen controls */
+      #controls {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: grid;
+        grid-template-columns: 60px 60px 60px;
+        gap: 10px;
+        z-index: 999;
+      }
+      button {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.5);
+        border: 2px solid white;
+        border-radius: 10px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
 
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <div id="controls">
+      <div></div>
+      <button id="up">UP</button>
+      <div></div>
+      <button id="left">LEFT</button>
+      <button id="down">DOWN</button>
+      <button id="right">RIGHT</button>
+    </div>
 
-  <style>
-    body { margin: 0; overflow: hidden; }
+    <a-scene xr-mode-ui="enabled: true" webxr="optionalFeatures: hit-test;">
+      <a-assets>
+        <a-asset-item id="planeModel" src="plane.glb"></a-asset-item>
+      </a-assets>
 
-    .controls {
-      position: fixed;
-      bottom: 20px;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      z-index: 10;
-    }
+      <a-entity id="plane" 
+                gltf-model="#planeModel" 
+                position="0 1.5 -3" 
+                scale="0.5 0.5 0.5"
+                rotation="0 180 0">
+      </a-entity>
 
-    button {
-      padding: 15px;
-      font-size: 18px;
-      border-radius: 10px;
-      border: none;
-      background: rgba(0,0,0,0.6);
-      color: white;
-    }
-  </style>
-</head>
+      <a-light type="ambient" intensity="0.5"></a-light>
+      <a-light type="directional" position="1 1 1"></a-light>
+      
+      <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
 
-<body>
+    <script>
+      const plane = document.querySelector('#plane');
+      const speed = 0.05;
+      let moveState = { up: false, down: false, left: false, right: false };
 
-<div class="controls">
-  <button onclick="moveForward()">↑</button>
-  <button onclick="moveDown()">↓</button>
-  <button onclick="turnLeft()">←</button>
-  <button onclick="turnRight()">→</button>
-</div>
+      // Helper to handle button presses
+      const setupButton = (id, direction) => {
+        const btn = document.getElementById(id);
+        btn.addEventListener('mousedown', () => moveState[direction] = true);
+        btn.addEventListener('mouseup', () => moveState[direction] = false);
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); moveState[direction] = true; });
+        btn.addEventListener('touchend', () => moveState[direction] = false);
+      };
 
-<a-scene embedded arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
+      setupButton('up', 'up');
+      setupButton('down', 'down');
+      setupButton('left', 'left');
+      setupButton('right', 'right');
 
-  <a-marker preset="hiro">
+      // The Game Loop: Runs every frame
+      function tick() {
+        let pos = plane.getAttribute('position');
+        let rot = plane.getAttribute('rotation');
 
-    <!-- Plane model -->
-    <a-entity 
-      id="plane"
-      gltf-model="plane.glb"
-      scale="0.5 0.5 0.5"
-      position="0 0.5 0">
-    </a-entity>
+        if (moveState.up) pos.y += speed;
+        if (moveState.down) pos.y -= speed;
+        if (moveState.left) {
+            pos.x -= speed;
+            rot.z = 15; // Slight tilt for realism
+        } else if (moveState.right) {
+            pos.x += speed;
+            rot.z = -15;
+        } else {
+            rot.z = 0; // Level out
+        }
 
-    <!-- Camera rig -->
-    <a-entity id="cameraRig">
-      <a-entity camera></a-entity>
-    </a-entity>
+        plane.setAttribute('position', pos);
+        plane.setAttribute('rotation', rot);
+        requestAnimationFrame(tick);
+      }
 
-  </a-marker>
-
-</a-scene>
-
-<script>
-  const plane = document.querySelector("#plane");
-  const cameraRig = document.querySelector("#cameraRig");
-
-  let rotationY = 0;
-  let speed = 0.05;
-
-  function moveForward() {
-    const pos = plane.getAttribute("position");
-    pos.x -= Math.sin(rotationY) * speed;
-    pos.z -= Math.cos(rotationY) * speed;
-    plane.setAttribute("position", pos);
-    updateCamera();
-  }
-
-  function moveDown() {
-    const pos = plane.getAttribute("position");
-    pos.y -= 0.1;
-    plane.setAttribute("position", pos);
-    updateCamera();
-  }
-
-  function turnLeft() {
-    rotationY += 0.1;
-    plane.setAttribute("rotation", { x: 0, y: rotationY * 57.3, z: 0 });
-    updateCamera();
-  }
-
-  function turnRight() {
-    rotationY -= 0.1;
-    plane.setAttribute("rotation", { x: 0, y: rotationY * 57.3, z: 0 });
-    updateCamera();
-  }
-
-  function updateCamera() {
-    const pos = plane.getAttribute("position");
-
-    const camX = pos.x + Math.sin(rotationY) * 3;
-    const camZ = pos.z + Math.cos(rotationY) * 3;
-
-    cameraRig.setAttribute("position", {
-      x: camX,
-      y: pos.y + 2,
-      z: camZ
-    });
-
-    cameraRig.object3D.lookAt(plane.object3D.position);
-  }
-</script>
-
-</body>
+      tick();
+    </script>
+  </body>
 </html>
