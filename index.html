@@ -6,44 +6,54 @@
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-      /* CRITICAL: Background must be transparent for the camera to show through */
-      body { margin: 0; overflow: hidden; background-color: transparent !important; font-family: sans-serif; }
+      /* Force transparency for the camera to show */
+      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent !important; }
       
       #ui-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
       
-      /* MENU */
+      /* MAIN MENU */
       #main-menu {
         position: absolute; top: 15px; width: 100%;
         display: flex; justify-content: center; gap: 8px; pointer-events: auto;
       }
       .nav-btn {
-        padding: 8px 12px; background: rgba(0,0,0,0.8); color: white;
-        border: 2px solid #fff; border-radius: 5px; font-size: 11px; font-weight: bold;
+        padding: 10px 15px; background: rgba(0,0,0,0.85); color: white;
+        border: 2px solid #fff; border-radius: 8px; font-size: 12px; font-weight: bold;
       }
       .nav-btn.active { background: #ffff00; color: #000; border-color: #ffff00; }
 
-      /* GAME UI */
+      /* GAME UI ELEMENTS */
       #game-ui { display: none; width: 100%; height: 100%; position: relative; }
-      #score-tag { position: absolute; top: 70px; left: 20px; color: #ffff00; background: rgba(0,0,0,0.8); padding: 8px 15px; border-radius: 5px; border: 2px solid #ffff00; pointer-events: auto; }
+      #score-tag { position: absolute; top: 80px; left: 20px; color: #ffff00; background: rgba(0,0,0,0.8); padding: 8px 15px; border-radius: 5px; border: 2px solid #ffff00; pointer-events: auto; font-family: monospace; font-size: 18px; }
       #radar-center { position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; }
-      #arrow { position: absolute; bottom: 80px; left: -20px; width: 40px; height: 50px; background-color: #ffff00; clip-path: polygon(50% 0%, 100% 45%, 75% 45%, 75% 100%, 25% 100%, 25% 45%, 0% 45%); }
+      #arrow { 
+        position: absolute; bottom: 85px; left: -20px; width: 40px; height: 50px; 
+        background-color: #ffff00; 
+        clip-path: polygon(50% 0%, 100% 45%, 75% 45%, 75% 100%, 25% 100%, 25% 45%, 0% 45%); 
+        filter: drop-shadow(0 0 8px yellow);
+      }
       
       #controls-container { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: auto; }
-      .btn-row { display: flex; justify-content: center; gap: 10px; margin: 5px 0; }
-      .ctrl-btn { width: 60px; height: 60px; background: rgba(0,0,0,0.7); color: white; border: 2px solid #fff; border-radius: 50%; font-weight: bold; touch-action: manipulation; }
+      .btn-row { display: flex; justify-content: center; gap: 12px; margin: 6px 0; }
+      .ctrl-btn { width: 65px; height: 65px; background: rgba(0,0,0,0.8); color: white; border: 2px solid #fff; border-radius: 50%; font-weight: bold; touch-action: manipulation; }
 
-      /* CAR UI - Expand/Decrease size */
-      #car-ui { display: none; position: absolute; bottom: 40px; width: 100%; text-align: center; pointer-events: auto; }
-      .car-btn { padding: 12px; margin: 4px; background: #00ccff; border: none; border-radius: 5px; color: white; font-weight: bold; }
+      /* CAR UI ELEMENTS */
+      #car-ui { display: none; position: absolute; bottom: 50px; width: 100%; text-align: center; pointer-events: auto; }
+      .car-btn { padding: 15px 20px; margin: 5px; background: #00ccff; border: none; border-radius: 10px; color: white; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+
+      /* DEBUGGER - Remove this once working */
+      #debug-log { position: fixed; bottom: 5px; left: 5px; color: lime; font-size: 10px; pointer-events: none; }
     </style>
   </head>
   <body>
 
+    <div id="debug-log">Status: Initializing...</div>
+
     <div id="ui-layer">
       <div id="main-menu">
-        <button class="nav-btn" id="btn-game" onclick="switchMode('game')">1. GAME</button>
-        <button class="nav-btn" id="btn-car" onclick="switchMode('car')">2. CAR</button>
-        <button class="nav-btn" id="btn-video" onclick="switchMode('video')">3. VIDEO</button>
+        <button class="nav-btn" id="btn-game" onclick="switchMode('game')">1. PLAY GAME</button>
+        <button class="nav-btn" id="btn-car" onclick="switchMode('car')">2. VIEW CAR</button>
+        <button class="nav-btn" id="btn-video" onclick="switchMode('video')">3. WATCH VIDEO</button>
       </div>
 
       <div id="game-ui">
@@ -51,22 +61,30 @@
         <div id="radar-center"><div id="arrow"></div></div>
         <div id="controls-container">
           <div class="btn-row"><button class="ctrl-btn" id="up">UP</button></div>
-          <div class="btn-row"><button class="ctrl-btn" id="left">LEFT</button><button class="ctrl-btn" id="freeze" style="background: #0050ff;">FREEZE</button><button class="ctrl-btn" id="right">RIGHT</button></div>
+          <div class="btn-row">
+            <button class="ctrl-btn" id="left">LEFT</button>
+            <button class="ctrl-btn" id="freeze" style="background: #0050ff; border-color: #00ccff;">FREEZE</button>
+            <button class="ctrl-btn" id="right">RIGHT</button>
+          </div>
           <div class="btn-row"><button class="ctrl-btn" id="down">DOWN</button></div>
         </div>
       </div>
 
       <div id="car-ui">
-        <div style="margin-bottom: 10px;">
-          <button class="car-btn" onclick="adjustCarScale(1.2)">EXPAND (+)</button>
-          <button class="car-btn" onclick="adjustCarScale(0.8)">SHRINK (-)</button>
-        </div>
-        <button class="car-btn" onclick="rotateCar(-15)">ROTATE L</button>
-        <button class="car-btn" onclick="rotateCar(15)">ROTATE R</button>
+        <div style="background: rgba(0,0,0,0.5); color: white; padding: 5px; margin-bottom: 10px;">Size & Rotation Controls</div>
+        <button class="car-btn" onclick="adjustCarScale(1.2)">Expand (+)</button>
+        <button class="car-btn" onclick="adjustCarScale(0.8)">Shrink (-)</button>
+        <br>
+        <button class="car-btn" onclick="rotateCar(-20)">Rotate Left</button>
+        <button class="car-btn" onclick="rotateCar(20)">Rotate Right</button>
       </div>
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="alpha: true; colorManagement: true;">
+    <a-scene 
+      embedded 
+      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;" 
+      renderer="alpha: true; colorManagement: true; logarithmicDepthBuffer: true;">
+      
       <a-assets>
         <a-asset-item id="planeModel" src="plane.glb"></a-asset-item>
         <a-asset-item id="carModel" src="car.glb"></a-asset-item>
@@ -74,54 +92,63 @@
       </a-assets>
 
       <a-entity id="game-entities" visible="false">
-        <a-entity id="plane" gltf-model="#planeModel" position="0 1 -5" scale="0.03 0.03 0.03"></a-entity>
+        <a-entity id="plane" gltf-model="#planeModel" position="0 1 -5" scale="0.03 0.03 0.03" rotation="0 0 0"></a-entity>
         <a-entity id="balloon-container"></a-entity>
       </a-entity>
 
       <a-entity id="car-entities" visible="false">
-        <a-entity id="car" gltf-model="#carModel" position="0 0 -3" scale="0.5 0.5 0.5"></a-entity>
+        <a-entity id="car" gltf-model="#carModel" position="0 0.5 -3" scale="0.5 0.5 0.5"></a-entity>
       </a-entity>
 
       <a-video id="video-entity" src="#arVideo" position="0 1.5 -3" width="3" height="1.7" visible="false"></a-video>
 
-      <a-entity camera look-controls id="main-cam"></a-entity>
-      <a-light type="ambient" intensity="1.0"></a-light>
-      <a-light type="directional" position="0 10 0" intensity="1.0"></a-light>
+      <a-entity camera look-controls id="main-cam" position="0 1.6 0"></a-entity>
+      <a-light type="ambient" intensity="1.2"></a-light>
+      <a-light type="directional" position="1 2 1" intensity="0.8"></a-light>
     </a-scene>
 
     <script>
+      const log = (msg) => { document.getElementById('debug-log').innerText = "Status: " + msg; console.log(msg); };
+      
       let currentMode = 'none';
       const plane = document.querySelector('#plane');
       const car = document.querySelector('#car');
       const videoAsset = document.querySelector('#arVideo');
       const scoreEl = document.querySelector('#score');
+      const cam = document.querySelector('#main-cam');
 
+      // MODE SWITCHER
       function switchMode(mode) {
+        log("Switching to " + mode);
         currentMode = mode;
         
-        // UI toggles
-        document.getElementById('game-ui').style.display = (mode === 'game') ? 'block' : 'none';
-        document.getElementById('car-ui').style.display = (mode === 'car') ? 'block' : 'none';
-        
-        // Entity toggles
-        document.getElementById('game-entities').setAttribute('visible', (mode === 'game'));
-        document.getElementById('car-entities').setAttribute('visible', (mode === 'car'));
-        document.getElementById('video-entity').setAttribute('visible', (mode === 'video'));
+        // Hide Everything First
+        document.getElementById('game-ui').style.display = 'none';
+        document.getElementById('car-ui').style.display = 'none';
+        document.getElementById('game-entities').setAttribute('visible', 'false');
+        document.getElementById('car-entities').setAttribute('visible', 'false');
+        document.getElementById('video-entity').setAttribute('visible', 'false');
+        videoAsset.pause();
 
-        // Logic resets
-        if (mode === 'video') videoAsset.play(); else videoAsset.pause();
+        // Show Selection
         if (mode === 'game') {
-          score = 0; scoreEl.innerText = "0";
-          plane.setAttribute('position', '0 1 -5');
-          if(document.getElementById('balloon-container').children.length === 0) spawnBalloons();
+          document.getElementById('game-ui').style.display = 'block';
+          document.getElementById('game-entities').setAttribute('visible', 'true');
+          resetGame();
+        } else if (mode === 'car') {
+          document.getElementById('car-ui').style.display = 'block';
+          document.getElementById('car-entities').setAttribute('visible', 'true');
+        } else if (mode === 'video') {
+          document.getElementById('video-entity').setAttribute('visible', 'true');
+          videoAsset.play().catch(e => log("Video Error: Click screen to play"));
         }
 
-        // Button highlight
+        // UI Buttons Style
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-' + mode).classList.add('active');
       }
 
-      // --- CAR LOGIC ---
+      // CAR CONTROLS
       function rotateCar(deg) {
         let rot = car.getAttribute('rotation');
         rot.y += deg;
@@ -133,15 +160,22 @@
         car.setAttribute('scale', sc);
       }
 
-      // --- GAME LOGIC ---
+      // GAME CONTROLS & LOGIC
       let score = 0, isFrozen = false, move = {up:false,down:false,left:false,right:false};
-      function spawnBalloons() {
+      const speed = 0.07;
+      
+      function resetGame() {
+        score = 0; scoreEl.innerText = "0";
+        plane.setAttribute('position', '0 1 -5');
+        plane.setAttribute('rotation', '0 0 0');
         const container = document.getElementById('balloon-container');
-        for(let i=0; i<5; i++) {
-          const b = document.createElement('a-entity');
-          b.setAttribute('position', `${(Math.random()-0.5)*30} ${Math.random()*4+1} ${(Math.random()-0.5)*30}`);
-          b.innerHTML = `<a-sphere color="red" radius="0.4"></a-sphere><a-cone color="orange" radius-bottom="0.1" height="0.3" position="0 -0.4 0"></a-cone>`;
-          container.appendChild(b);
+        if(container.children.length === 0) {
+          for(let i=0; i<5; i++) {
+            const b = document.createElement('a-entity');
+            b.setAttribute('position', `${(Math.random()-0.5)*30} ${Math.random()*4+1} ${(Math.random()-0.5)*30}`);
+            b.innerHTML = `<a-sphere color="red" radius="0.4"></a-sphere><a-cone color="orange" radius-bottom="0.1" height="0.3" position="0 -0.4 0"></a-cone>`;
+            container.appendChild(b);
+          }
         }
       }
 
@@ -153,27 +187,29 @@
         btn.addEventListener('mousedown', start); btn.addEventListener('mouseup', end);
       };
       ['up', 'down', 'left', 'right'].forEach(dir => bind(dir, dir));
+
       document.getElementById('freeze').addEventListener('click', () => {
         isFrozen = !isFrozen;
-        document.getElementById('freeze').style.background = isFrozen ? "#00ccff" : "#0050ff";
+        document.getElementById('freeze').style.backgroundColor = isFrozen ? "#00ccff" : "#0050ff";
       });
 
-      // --- MAIN LOOP ---
+      // THE CORE LOOP
       function update() {
         if (currentMode === 'game' && !isFrozen) {
           let pPos = plane.getAttribute('position');
           let pRot = plane.getAttribute('rotation');
           if (move.left) pRot.y += 3;
           if (move.right) pRot.y -= 3;
-          if (move.up) pPos.y += 0.07;
-          if (move.down) pPos.y -= 0.07;
+          if (move.up) pPos.y += speed;
+          if (move.down) pPos.y -= speed;
+          
           let rad = pRot.y * (Math.PI / 180);
-          pPos.x += Math.sin(rad) * 0.07;
-          pPos.z += Math.cos(rad) * 0.07;
+          pPos.x += Math.sin(rad) * speed;
+          pPos.z += Math.cos(rad) * speed;
           plane.setAttribute('position', pPos);
           plane.setAttribute('rotation', pRot);
 
-          // Balloon collision
+          // Collision Check
           document.querySelectorAll('#balloon-container a-entity').forEach(b => {
             let bPos = b.getAttribute('position');
             let d = Math.sqrt(Math.pow(pPos.x-bPos.x,2)+Math.pow(pPos.y-bPos.y,2)+Math.pow(pPos.z-bPos.z,2));
@@ -184,14 +220,19 @@
           });
 
           // Radar
-          let cPos = document.querySelector('#main-cam').object3D.position;
-          let cRot = document.querySelector('#main-cam').getAttribute('rotation');
+          let cPos = cam.object3D.position;
+          let cRot = cam.getAttribute('rotation');
           let angle = Math.atan2(pPos.x - cPos.x, pPos.z - cPos.z) * (180 / Math.PI);
           document.querySelector('#radar-center').style.transform = `translate(-50%, -50%) rotate(${-(angle - cRot.y + 180)}deg)`;
         }
         requestAnimationFrame(update);
       }
-      update();
+      
+      // Safety Check: Start the update loop
+      window.onload = () => {
+        log("Camera Ready. Click a button to start.");
+        update();
+      };
     </script>
   </body>
 </html>
