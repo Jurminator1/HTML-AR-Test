@@ -6,19 +6,19 @@
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent !important; font-family: sans-serif; }
+      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
       #ui-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
       
       /* NAVIGATION */
       #main-menu { position: absolute; top: 15px; width: 100%; display: flex; justify-content: center; gap: 8px; pointer-events: auto; }
-      .nav-btn { padding: 10px 15px; background: rgba(0,0,0,0.85); color: white; border: 2px solid #fff; border-radius: 8px; font-size: 11px; font-weight: bold; }
+      .nav-btn { padding: 10px 12px; background: rgba(0,0,0,0.85); color: white; border: 2px solid #fff; border-radius: 8px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
       .nav-btn.active { background: #ffff00; color: #000; border-color: #ffff00; }
 
       /* UI BOXES */
       #game-ui, #car-ui, #const-ui, #win-panel { display: none; position: absolute; pointer-events: auto; }
       
       #game-ui { width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; }
-      #score-tag { position: absolute; top: 80px; left: 20px; color: #ffff00; background: rgba(0,0,0,0.8); padding: 8px 15px; border: 2px solid #ffff00; pointer-events: auto; }
+      #score-tag { position: absolute; top: 80px; left: 20px; color: #ffff00; background: rgba(0,0,0,0.8); padding: 8px 15px; border: 2px solid #ffff00; pointer-events: auto; font-weight: bold; }
       #radar-center { position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; }
       #arrow { position: absolute; bottom: 85px; left: -20px; width: 40px; height: 50px; background-color: #ffff00; clip-path: polygon(50% 0%, 100% 45%, 75% 45%, 75% 100%, 25% 100%, 25% 45%, 0% 45%); }
       
@@ -26,52 +26,52 @@
       .btn-row { display: flex; justify-content: center; gap: 12px; margin: 6px 0; }
       .ctrl-btn { width: 65px; height: 65px; background: rgba(0,0,0,0.8); color: white; border: 2px solid #fff; border-radius: 50%; font-weight: bold; touch-action: manipulation; }
 
-      #win-panel { top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.9); padding: 25px; border: 3px solid #ffff00; border-radius: 15px; z-index: 1100; min-width: 200px; }
-      #car-ui, #const-ui { bottom: 50px; width: 100%; text-align: center; }
+      #win-panel { top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.95); padding: 25px; border: 3px solid #ffff00; border-radius: 15px; z-index: 1100; min-width: 240px; }
+      #car-ui, #const-ui { bottom: 40px; width: 100%; text-align: center; }
       
-      .action-btn { padding: 12px 18px; margin: 5px; background: #00ccff; border: 2px solid white; border-radius: 10px; color: white; font-weight: bold; font-size: 12px; }
+      .action-btn { padding: 12px 18px; margin: 5px; background: #00ccff; border: 2px solid white; border-radius: 10px; color: white; font-weight: bold; font-size: 11px; text-transform: uppercase; }
       .dist-btn { background: #ff9900; } 
-      .web-btn { background: #ff33bb; }
+      .qr-hint { background: rgba(0,0,0,0.8); color: #ff33bb; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #ff33bb; font-size: 12px; display: inline-block; }
     </style>
   </head>
   <body>
 
     <div id="ui-layer">
       <div id="main-menu">
-        <button class="nav-btn" id="btn-game" onclick="switchMode('game')">GAME</button>
-        <button class="nav-btn" id="btn-car" onclick="switchMode('car')">CAR</button>
-        <button class="nav-btn" id="btn-video" onclick="switchMode('video')">CONSTRUCTION</button>
+        <button class="nav-btn" id="btn-game" onclick="switchMode('game')">SPIEL</button>
+        <button class="nav-btn" id="btn-car" onclick="switchMode('car')">AUTO</button>
+        <button class="nav-btn" id="btn-video" onclick="switchMode('video')">BAUSTELLE</button>
       </div>
 
       <div id="game-ui">
-        <div id="score-tag">SCORE: <span id="score">0</span>/5</div>
+        <div id="score-tag">PUNKTE: <span id="score">0</span>/5</div>
         <div id="radar-center"><div id="arrow"></div></div>
         <div id="controls-container">
-          <div class="btn-row"><button class="ctrl-btn" id="up">UP</button></div>
-          <div class="btn-row"><button class="ctrl-btn" id="left">LEFT</button><button class="ctrl-btn" id="freeze" style="background:#0050ff">FREEZE</button><button class="ctrl-btn" id="right">RIGHT</button></div>
-          <div class="btn-row"><button class="ctrl-btn" id="down">DOWN</button></div>
+          <div class="btn-row"><button class="ctrl-btn" id="up">HOCH</button></div>
+          <div class="btn-row"><button class="ctrl-btn" id="left">LINKS</button><button class="ctrl-btn" id="freeze" style="background:#0050ff">STOPP</button><button class="ctrl-btn" id="right">RECHTS</button></div>
+          <div class="btn-row"><button class="ctrl-btn" id="down">RUNTER</button></div>
         </div>
       </div>
 
       <div id="win-panel">
-        <h2 style="color: #ffff00; margin-top: 0;">YOU WON!</h2>
-        <p style="color: white; font-size: 12px;">Click below to watch the video</p>
-        <button class="action-btn" onclick="playWinVideo()">▶ PLAY WIN VIDEO</button>
+        <h2 style="color: #ffff00; margin-top: 0;">GEWONNEN!</h2>
+        <p style="color: white; font-size: 12px;">Klicke unten, um das Video zu starten</p>
+        <button class="action-btn" onclick="playWinVideo()">▶ VIDEO ABSPIELEN</button>
       </div>
 
       <div id="car-ui">
-        <button class="action-btn" onclick="adjustCarScale(1.2)">EXPAND (+)</button>
-        <button class="action-btn" onclick="adjustCarScale(0.8)">SHRINK (-)</button>
-        <button class="action-btn" onclick="rotateCar(30)">ROTATE</button>
-        <button class="action-btn web-btn" onclick="window.open('https://www.google.com', '_blank')">VISIT WEBSITE</button>
+        <div class="qr-hint">Öffne den QR-Scanner & scanne den Auto-Code!</div><br>
+        <button class="action-btn" onclick="adjustCarScale(1.2)">GRÖSSER (+)</button>
+        <button class="action-btn" onclick="adjustCarScale(0.8)">KLEINER (-)</button>
+        <button class="action-btn" onclick="rotateCar(30)">DREHEN</button>
       </div>
 
       <div id="const-ui">
-        <div style="background: rgba(0,0,0,0.6); color: white; padding: 5px; margin-bottom: 5px; border-radius: 5px;">Video Controls</div>
-        <button class="action-btn dist-btn" onclick="adjustVideoDist(-0.5)">CLOSER</button>
-        <button class="action-btn dist-btn" onclick="adjustVideoDist(0.5)">FARTHER</button>
+        <div style="background: rgba(0,0,0,0.6); color: white; padding: 5px; margin-bottom: 5px; border-radius: 5px; font-size: 12px;">Video-Entfernung</div>
+        <button class="action-btn dist-btn" onclick="adjustVideoDist(0.5)">NÄHER RAN</button>
+        <button class="action-btn dist-btn" onclick="adjustVideoDist(-0.5)">WEITER WEG</button>
         <br>
-        <button class="action-btn" onclick="playConstructionVideo()">▶ PLAY CONSTRUCTION</button>
+        <button class="action-btn" onclick="playConstructionVideo()">▶ VIDEO STARTEN</button>
       </div>
     </div>
 
@@ -121,9 +121,7 @@
         document.getElementById('car-entities').setAttribute('visible', mode === 'car');
         constEntity.setAttribute('visible', mode === 'video');
 
-        // Mute and pause everything when switching
-        winVid.pause(); winVid.currentTime = 0;
-        constVid.pause(); constVid.currentTime = 0;
+        winVid.pause(); constVid.pause();
         document.getElementById('win-video-entity').setAttribute('visible', 'false');
 
         if (mode === 'game') resetGame();
@@ -132,9 +130,10 @@
         document.getElementById('btn-' + (mode==='video'?'video':mode)).classList.add('active');
       }
 
+      // KORRIGIERTE ENTFERNUNGS-LOGIK
       function adjustVideoDist(val) {
         let pos = constEntity.getAttribute('position');
-        pos.z += val;
+        pos.z += val; // Val ist positiv für "Näher ran" (z.B. von -3 auf -2.5)
         if (pos.z > -1) pos.z = -1;
         if (pos.z < -10) pos.z = -10;
         constEntity.setAttribute('position', pos);
@@ -159,20 +158,12 @@
 
       function playWinVideo() {
         document.getElementById('win-panel').style.display = 'none';
-        const ent = document.getElementById('win-video-entity');
-        ent.setAttribute('visible', 'true');
-        // Mobile browsers often require muted at first or a clear user action
-        winVid.muted = false; 
-        winVid.play().catch(e => {
-            console.log("Autoplay blocked, trying muted...");
-            winVid.muted = true;
-            winVid.play();
-        });
+        document.getElementById('win-video-entity').setAttribute('visible', 'true');
+        winVid.muted = false; winVid.play();
       }
 
       function playConstructionVideo() { 
-        constVid.muted = false;
-        constVid.play(); 
+        constVid.muted = false; constVid.play(); 
       }
 
       function rotateCar(d) { let r = car.getAttribute('rotation'); r.y += d; car.setAttribute('rotation', r); }
