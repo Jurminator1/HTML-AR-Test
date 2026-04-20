@@ -6,44 +6,44 @@
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-      body { margin: 0; overflow: hidden; font-family: sans-serif; background: #000; }
+      /* CRITICAL: Background must be transparent for the camera to show through */
+      body { margin: 0; overflow: hidden; background-color: transparent !important; font-family: sans-serif; }
       
-      /* UI OVERLAY */
       #ui-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
       
-      /* MAIN MENU - Bottom Navigation */
+      /* MENU */
       #main-menu {
-        position: absolute; top: 20px; width: 100%;
-        display: flex; justify-content: center; gap: 10px; pointer-events: auto;
+        position: absolute; top: 15px; width: 100%;
+        display: flex; justify-content: center; gap: 8px; pointer-events: auto;
       }
       .nav-btn {
-        padding: 10px 15px; background: rgba(0,0,0,0.8); color: white;
-        border: 2px solid #fff; border-radius: 5px; font-weight: bold;
+        padding: 8px 12px; background: rgba(0,0,0,0.8); color: white;
+        border: 2px solid #fff; border-radius: 5px; font-size: 11px; font-weight: bold;
       }
       .nav-btn.active { background: #ffff00; color: #000; border-color: #ffff00; }
 
-      /* GAME CONTROLS (Hidden by default) */
+      /* GAME UI */
       #game-ui { display: none; width: 100%; height: 100%; position: relative; }
       #score-tag { position: absolute; top: 70px; left: 20px; color: #ffff00; background: rgba(0,0,0,0.8); padding: 8px 15px; border-radius: 5px; border: 2px solid #ffff00; pointer-events: auto; }
-      #radar-center { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%); }
+      #radar-center { position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; }
       #arrow { position: absolute; bottom: 80px; left: -20px; width: 40px; height: 50px; background-color: #ffff00; clip-path: polygon(50% 0%, 100% 45%, 75% 45%, 75% 100%, 25% 100%, 25% 45%, 0% 45%); }
       
       #controls-container { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: auto; }
       .btn-row { display: flex; justify-content: center; gap: 10px; margin: 5px 0; }
-      .ctrl-btn { width: 60px; height: 60px; background: rgba(0,0,0,0.7); color: white; border: 2px solid #fff; border-radius: 50%; font-weight: bold; }
+      .ctrl-btn { width: 60px; height: 60px; background: rgba(0,0,0,0.7); color: white; border: 2px solid #fff; border-radius: 50%; font-weight: bold; touch-action: manipulation; }
 
-      /* CAR CONTROLS (Hidden by default) */
+      /* CAR UI - Expand/Decrease size */
       #car-ui { display: none; position: absolute; bottom: 40px; width: 100%; text-align: center; pointer-events: auto; }
-      .car-btn { padding: 15px; margin: 5px; background: #00ccff; border: none; border-radius: 5px; color: white; font-weight: bold; }
+      .car-btn { padding: 12px; margin: 4px; background: #00ccff; border: none; border-radius: 5px; color: white; font-weight: bold; }
     </style>
   </head>
   <body>
 
     <div id="ui-layer">
       <div id="main-menu">
-        <button class="nav-btn" onclick="switchMode('game')">1. PLAY GAME</button>
-        <button class="nav-btn" onclick="switchMode('car')">2. VIEW CAR</button>
-        <button class="nav-btn" onclick="switchMode('video')">3. WATCH VIDEO</button>
+        <button class="nav-btn" id="btn-game" onclick="switchMode('game')">1. GAME</button>
+        <button class="nav-btn" id="btn-car" onclick="switchMode('car')">2. CAR</button>
+        <button class="nav-btn" id="btn-video" onclick="switchMode('video')">3. VIDEO</button>
       </div>
 
       <div id="game-ui">
@@ -51,27 +51,26 @@
         <div id="radar-center"><div id="arrow"></div></div>
         <div id="controls-container">
           <div class="btn-row"><button class="ctrl-btn" id="up">UP</button></div>
-          <div class="btn-row">
-            <button class="ctrl-btn" id="left">LEFT</button>
-            <button class="ctrl-btn" id="freeze" style="background: #0050ff;">FREEZE</button>
-            <button class="ctrl-btn" id="right">RIGHT</button>
-          </div>
+          <div class="btn-row"><button class="ctrl-btn" id="left">LEFT</button><button class="ctrl-btn" id="freeze" style="background: #0050ff;">FREEZE</button><button class="ctrl-btn" id="right">RIGHT</button></div>
           <div class="btn-row"><button class="ctrl-btn" id="down">DOWN</button></div>
         </div>
       </div>
 
       <div id="car-ui">
-        <p style="color:white; text-shadow: 1px 1px #000;">Use buttons to Rotate | Scroll to Zoom</p>
-        <button class="car-btn" onclick="rotateCar(-10)">ROTATE L</button>
-        <button class="car-btn" onclick="rotateCar(10)">ROTATE R</button>
+        <div style="margin-bottom: 10px;">
+          <button class="car-btn" onclick="adjustCarScale(1.2)">EXPAND (+)</button>
+          <button class="car-btn" onclick="adjustCarScale(0.8)">SHRINK (-)</button>
+        </div>
+        <button class="car-btn" onclick="rotateCar(-15)">ROTATE L</button>
+        <button class="car-btn" onclick="rotateCar(15)">ROTATE R</button>
       </div>
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="alpha: true; colorManagement: true;">
       <a-assets>
         <a-asset-item id="planeModel" src="plane.glb"></a-asset-item>
         <a-asset-item id="carModel" src="car.glb"></a-asset-item>
-        <video id="arVideo" src="video.mp4" loop="true" crossorigin="anonymous"></video>
+        <video id="arVideo" src="video.mp4" loop="true" crossorigin="anonymous" playsinline></video>
       </a-assets>
 
       <a-entity id="game-entities" visible="false">
@@ -80,97 +79,84 @@
       </a-entity>
 
       <a-entity id="car-entities" visible="false">
-        <a-entity id="car" gltf-model="#carModel" position="0 0.5 -3" scale="1 1 1"></a-entity>
+        <a-entity id="car" gltf-model="#carModel" position="0 0 -3" scale="0.5 0.5 0.5"></a-entity>
       </a-entity>
 
       <a-video id="video-entity" src="#arVideo" position="0 1.5 -3" width="3" height="1.7" visible="false"></a-video>
 
       <a-entity camera look-controls id="main-cam"></a-entity>
-      <a-light type="ambient" intensity="1.5"></a-light>
+      <a-light type="ambient" intensity="1.0"></a-light>
+      <a-light type="directional" position="0 10 0" intensity="1.0"></a-light>
     </a-scene>
 
     <script>
       let currentMode = 'none';
-      const modes = {
-        game: { ui: 'game-ui', ent: 'game-entities' },
-        car: { ui: 'car-ui', ent: 'car-entities' },
-        video: { ui: '', ent: 'video-entity' }
-      };
+      const plane = document.querySelector('#plane');
+      const car = document.querySelector('#car');
+      const videoAsset = document.querySelector('#arVideo');
+      const scoreEl = document.querySelector('#score');
 
-      // Navigation Logic
       function switchMode(mode) {
         currentMode = mode;
-        const video = document.querySelector('#arVideo');
         
-        // Hide all
-        Object.values(modes).forEach(m => {
-          if(m.ui) document.getElementById(m.ui).style.display = 'none';
-          document.getElementById(m.ent).setAttribute('visible', 'false');
-        });
-        video.pause();
-
-        // Show selected
-        const active = modes[mode];
-        if(active.ui) document.getElementById(active.ui).style.display = 'block';
-        document.getElementById(active.ent).setAttribute('visible', 'true');
-
-        // Special actions
-        if(mode === 'game') resetGame();
-        if(mode === 'video') video.play();
+        // UI toggles
+        document.getElementById('game-ui').style.display = (mode === 'game') ? 'block' : 'none';
+        document.getElementById('car-ui').style.display = (mode === 'car') ? 'block' : 'none';
         
-        // Update Button Styles
-        document.querySelectorAll('.nav-btn').forEach((btn, idx) => {
-          btn.classList.toggle('active', (idx + 1) === (mode === 'game' ? 1 : mode === 'car' ? 2 : 3));
-        });
-      }
+        // Entity toggles
+        document.getElementById('game-entities').setAttribute('visible', (mode === 'game'));
+        document.getElementById('car-entities').setAttribute('visible', (mode === 'car'));
+        document.getElementById('video-entity').setAttribute('visible', (mode === 'video'));
 
-      // --- GAME LOGIC ---
-      const plane = document.querySelector('#plane');
-      const scoreEl = document.querySelector('#score');
-      let score = 0, isFrozen = false, move = {up:false,down:false,left:false,right:false};
-
-      function resetGame() {
-        score = 0; scoreEl.innerText = "0";
-        plane.setAttribute('position', '0 1 -5');
-        plane.setAttribute('rotation', '0 0 0');
-        if(document.querySelector('#balloon-container').children.length === 0) spawnBalloons();
-      }
-
-      function spawnBalloons() {
-        const container = document.querySelector('#balloon-container');
-        for(let i=0; i<5; i++) {
-          const b = document.createElement('a-entity');
-          b.setAttribute('position', `${(Math.random()-0.5)*30} ${Math.random()*5+1} ${(Math.random()-0.5)*30}`);
-          b.innerHTML = `<a-sphere color="red" radius="0.4"></a-sphere><a-cone color="orange" radius-bottom="0.1" height="0.3" position="0 -0.4 0"></a-cone>`;
-          container.appendChild(b);
+        // Logic resets
+        if (mode === 'video') videoAsset.play(); else videoAsset.pause();
+        if (mode === 'game') {
+          score = 0; scoreEl.innerText = "0";
+          plane.setAttribute('position', '0 1 -5');
+          if(document.getElementById('balloon-container').children.length === 0) spawnBalloons();
         }
+
+        // Button highlight
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + mode).classList.add('active');
       }
 
       // --- CAR LOGIC ---
-      const car = document.querySelector('#car');
-      let carScale = 1;
       function rotateCar(deg) {
         let rot = car.getAttribute('rotation');
         rot.y += deg;
         car.setAttribute('rotation', rot);
       }
-      window.addEventListener('wheel', (e) => {
-        if(currentMode !== 'car') return;
-        carScale -= e.deltaY * 0.001;
-        carScale = Math.min(Math.max(0.1, carScale), 3);
-        car.setAttribute('scale', `${carScale} ${carScale} ${carScale}`);
-      });
+      function adjustCarScale(factor) {
+        let sc = car.getAttribute('scale');
+        sc.x *= factor; sc.y *= factor; sc.z *= factor;
+        car.setAttribute('scale', sc);
+      }
 
-      // --- CONTROLS BINDING ---
+      // --- GAME LOGIC ---
+      let score = 0, isFrozen = false, move = {up:false,down:false,left:false,right:false};
+      function spawnBalloons() {
+        const container = document.getElementById('balloon-container');
+        for(let i=0; i<5; i++) {
+          const b = document.createElement('a-entity');
+          b.setAttribute('position', `${(Math.random()-0.5)*30} ${Math.random()*4+1} ${(Math.random()-0.5)*30}`);
+          b.innerHTML = `<a-sphere color="red" radius="0.4"></a-sphere><a-cone color="orange" radius-bottom="0.1" height="0.3" position="0 -0.4 0"></a-cone>`;
+          container.appendChild(b);
+        }
+      }
+
       const bind = (id, dir) => {
         const btn = document.getElementById(id);
-        btn.addEventListener('mousedown', () => move[dir] = true);
-        btn.addEventListener('mouseup', () => move[dir] = false);
-        btn.addEventListener('touchstart', (e) => { e.preventDefault(); move[dir] = true; });
-        btn.addEventListener('touchend', () => move[dir] = false);
+        const start = (e) => { e.preventDefault(); move[dir] = true; };
+        const end = () => move[dir] = false;
+        btn.addEventListener('touchstart', start); btn.addEventListener('touchend', end);
+        btn.addEventListener('mousedown', start); btn.addEventListener('mouseup', end);
       };
       ['up', 'down', 'left', 'right'].forEach(dir => bind(dir, dir));
-      document.getElementById('freeze').addEventListener('click', () => isFrozen = !isFrozen);
+      document.getElementById('freeze').addEventListener('click', () => {
+        isFrozen = !isFrozen;
+        document.getElementById('freeze').style.background = isFrozen ? "#00ccff" : "#0050ff";
+      });
 
       // --- MAIN LOOP ---
       function update() {
@@ -186,6 +172,16 @@
           pPos.z += Math.cos(rad) * 0.07;
           plane.setAttribute('position', pPos);
           plane.setAttribute('rotation', pRot);
+
+          // Balloon collision
+          document.querySelectorAll('#balloon-container a-entity').forEach(b => {
+            let bPos = b.getAttribute('position');
+            let d = Math.sqrt(Math.pow(pPos.x-bPos.x,2)+Math.pow(pPos.y-bPos.y,2)+Math.pow(pPos.z-bPos.z,2));
+            if (d < 1.0) {
+              score++; scoreEl.innerText = score;
+              b.setAttribute('position', `${(Math.random()-0.5)*30} ${Math.random()*4+1} ${(Math.random()-0.5)*30}`);
+            }
+          });
 
           // Radar
           let cPos = document.querySelector('#main-cam').object3D.position;
