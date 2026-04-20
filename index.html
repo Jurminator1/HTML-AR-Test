@@ -21,6 +21,7 @@
       #score-tag { position: absolute; top: 80px; left: 20px; color: #ffff00; background: rgba(0,0,0,0.8); padding: 8px 15px; border: 2px solid #ffff00; pointer-events: auto; }
       #radar-center { position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; }
       #arrow { position: absolute; bottom: 85px; left: -20px; width: 40px; height: 50px; background-color: #ffff00; clip-path: polygon(50% 0%, 100% 45%, 75% 45%, 75% 100%, 25% 100%, 25% 45%, 0% 45%); }
+      
       #controls-container { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: auto; }
       .btn-row { display: flex; justify-content: center; gap: 12px; margin: 6px 0; }
       .ctrl-btn { width: 65px; height: 65px; background: rgba(0,0,0,0.8); color: white; border: 2px solid #fff; border-radius: 50%; font-weight: bold; touch-action: manipulation; }
@@ -28,8 +29,9 @@
       #win-panel { top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.9); padding: 20px; border: 3px solid #ffff00; border-radius: 15px; z-index: 1100; }
       #car-ui, #const-ui { bottom: 50px; width: 100%; text-align: center; }
       
-      .action-btn { padding: 15px 20px; margin: 5px; background: #00ccff; border: 2px solid white; border-radius: 10px; color: white; font-weight: bold; }
-      .web-btn { background: #ff33bb; } /* Pink button for the website */
+      .action-btn { padding: 12px 18px; margin: 5px; background: #00ccff; border: 2px solid white; border-radius: 10px; color: white; font-weight: bold; font-size: 12px; }
+      .dist-btn { background: #ff9900; } /* Orange for distance controls */
+      .web-btn { background: #ff33bb; }
     </style>
   </head>
   <body>
@@ -64,7 +66,11 @@
       </div>
 
       <div id="const-ui">
-        <button class="action-btn" onclick="playConstructionVideo()">DISPLAY CONSTRUCTION VIDEO</button>
+        <div style="background: rgba(0,0,0,0.6); color: white; padding: 5px; margin-bottom: 5px; border-radius: 5px;">Video Distance</div>
+        <button class="action-btn dist-btn" onclick="adjustVideoDist(-0.5)">CLOSER</button>
+        <button class="action-btn dist-btn" onclick="adjustVideoDist(0.5)">FARTHER</button>
+        <br>
+        <button class="action-btn" id="play-const-btn" onclick="playConstructionVideo()">PLAY VIDEO</button>
       </div>
     </div>
 
@@ -97,7 +103,9 @@
       const car = document.querySelector('#car');
       const winVid = document.querySelector('#winVid');
       const constVid = document.querySelector('#constVid');
+      const constEntity = document.querySelector('#const-video-entity');
       const scoreEl = document.querySelector('#score');
+      
       let currentMode = 'none';
       let score = 0, isFrozen = false, move = {up:false,down:false,left:false,right:false};
 
@@ -110,7 +118,7 @@
         
         document.getElementById('game-entities').setAttribute('visible', mode === 'game');
         document.getElementById('car-entities').setAttribute('visible', mode === 'car');
-        document.getElementById('const-video-entity').setAttribute('visible', mode === 'video');
+        constEntity.setAttribute('visible', mode === 'video');
 
         winVid.pause(); constVid.pause();
         if (mode === 'game') resetGame();
@@ -119,26 +127,31 @@
         document.getElementById('btn-' + (mode==='video'?'video':mode)).classList.add('active');
       }
 
+      // --- DISTANCE LOGIC ---
+      function adjustVideoDist(val) {
+        let pos = constEntity.getAttribute('position');
+        pos.z += val; // Moves along Z axis
+        // Limit distance so it doesn't go behind the camera or too far away
+        if (pos.z > -1) pos.z = -1;
+        if (pos.z < -10) pos.z = -10;
+        constEntity.setAttribute('position', pos);
+      }
+
       function resetGame() {
         score = 0; scoreEl.innerText = "0"; isFrozen = false;
         plane.setAttribute('position', '0 1 -5');
         const container = document.getElementById('balloon-container');
         container.innerHTML = ''; 
-        for(let i=0; i<5; i++) spawnBalloon(container);
-      }
-
-      function spawnBalloon(container) {
-        const b = document.createElement('a-entity');
-        // Logic: Distance must be between 8 and 20 units away, height between 1 and 4
-        let x = (Math.random() - 0.5) * 40;
-        let z = (Math.random() - 0.5) * 40;
-        // Ensure not too close to center (0,0,0)
-        if (Math.abs(x) < 8) x += (x < 0 ? -10 : 10);
-        if (Math.abs(z) < 8) z += (z < 0 ? -10 : 10);
-        
-        b.setAttribute('position', `${x} ${Math.random() * 3 + 1} ${z}`);
-        b.innerHTML = `<a-sphere color="red" radius="0.4"></a-sphere><a-cone color="orange" radius-bottom="0.1" height="0.3" position="0 -0.4 0"></a-cone>`;
-        container.appendChild(b);
+        for(let i=0; i<5; i++) {
+          const b = document.createElement('a-entity');
+          let x = (Math.random() - 0.5) * 40;
+          let z = (Math.random() - 0.5) * 40;
+          if (Math.abs(x) < 8) x += (x < 0 ? -10 : 10);
+          if (Math.abs(z) < 8) z += (z < 0 ? -10 : 10);
+          b.setAttribute('position', `${x} ${Math.random() * 3 + 1} ${z}`);
+          b.innerHTML = `<a-sphere color="red" radius="0.4"></a-sphere><a-cone color="orange" radius-bottom="0.1" height="0.3" position="0 -0.4 0"></a-cone>`;
+          container.appendChild(b);
+        }
       }
 
       function playWinVideo() {
@@ -149,8 +162,13 @@
 
       function rotateCar(d) { let r = car.getAttribute('rotation'); r.y += d; car.setAttribute('rotation', r); }
       function adjustCarScale(f) { let s = car.getAttribute('scale'); s.x *= f; s.y *= f; s.z *= f; car.setAttribute('scale', s); }
-      function playConstructionVideo() { document.getElementById('const-ui').style.display = 'none'; constVid.play(); }
+      
+      function playConstructionVideo() { 
+        document.getElementById('play-const-btn').style.display = 'none'; 
+        constVid.play(); 
+      }
 
+      // --- CONTROLS ---
       const bind = (id, dir) => {
         const btn = document.getElementById(id);
         const start = (e) => { e.preventDefault(); move[dir] = true; };
@@ -174,7 +192,8 @@
           document.querySelectorAll('#balloon-container a-entity').forEach(b => {
             let bPos = b.getAttribute('position');
             let d = Math.sqrt(Math.pow(pPos.x-bPos.x,2)+Math.pow(pPos.y-bPos.y,2)+Math.pow(pPos.z-bPos.z,2));
-            if (d < 1.0) {
+            // INCREASED COLLISION RADIUS TO 2.0 FOR EASIER COLLECTION
+            if (d < 2.0) {
               score++; scoreEl.innerText = score;
               b.parentNode.removeChild(b);
               if (score >= 5) { isFrozen = true; document.getElementById('win-panel').style.display = 'block'; }
