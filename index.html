@@ -6,36 +6,33 @@
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent !important; font-family: 'Courier New', Courier, monospace; }
+      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent !important; font-family: sans-serif; }
       #ui-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
       
-      /* TOP NAVIGATION */
+      /* NAVIGATION */
       #main-menu { position: absolute; top: 15px; width: 100%; display: flex; justify-content: center; gap: 8px; pointer-events: auto; }
       .nav-btn { padding: 10px 15px; background: rgba(0,0,0,0.85); color: white; border: 2px solid #fff; border-radius: 8px; font-size: 11px; font-weight: bold; }
       .nav-btn.active { background: #ffff00; color: #000; border-color: #ffff00; }
 
-      /* GAME UI */
-      #game-ui { display: none; width: 100%; height: 100%; position: relative; }
-      #score-tag { position: absolute; top: 80px; left: 20px; color: #ffff00; background: rgba(0,0,0,0.8); padding: 8px 15px; border: 2px solid #ffff00; pointer-events: auto; font-weight: bold; }
+      /* UI BOXES */
+      #game-ui, #car-ui, #const-ui, #win-panel { display: none; position: absolute; pointer-events: auto; }
+      
+      #game-ui { width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; }
+      #score-tag { position: absolute; top: 80px; left: 20px; color: #ffff00; background: rgba(0,0,0,0.8); padding: 8px 15px; border: 2px solid #ffff00; pointer-events: auto; }
       #radar-center { position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; }
       #arrow { position: absolute; bottom: 85px; left: -20px; width: 40px; height: 50px; background-color: #ffff00; clip-path: polygon(50% 0%, 100% 45%, 75% 45%, 75% 100%, 25% 100%, 25% 45%, 0% 45%); }
       #controls-container { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: auto; }
       .btn-row { display: flex; justify-content: center; gap: 12px; margin: 6px 0; }
       .ctrl-btn { width: 65px; height: 65px; background: rgba(0,0,0,0.8); color: white; border: 2px solid #fff; border-radius: 50%; font-weight: bold; touch-action: manipulation; }
 
-      /* WIN PANEL */
-      #win-panel { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: auto; background: rgba(0,0,0,0.9); padding: 20px; border: 3px solid #ffff00; border-radius: 15px; }
+      #win-panel { top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.9); padding: 20px; border: 3px solid #ffff00; border-radius: 15px; z-index: 1100; }
+      #car-ui, #const-ui { bottom: 50px; width: 100%; text-align: center; }
       
-      /* CAR & CONSTRUCTION UI */
-      #car-ui, #const-ui { display: none; position: absolute; bottom: 50px; width: 100%; text-align: center; pointer-events: auto; }
-      .action-btn { padding: 15px 25px; margin: 5px; background: #00ccff; border: 2px solid white; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
-
-      #debug { position: fixed; bottom: 5px; left: 5px; color: #0f0; font-size: 10px; z-index: 2000; }
+      .action-btn { padding: 15px 20px; margin: 5px; background: #00ccff; border: 2px solid white; border-radius: 10px; color: white; font-weight: bold; }
+      .web-btn { background: #ff33bb; } /* Pink button for the website */
     </style>
   </head>
   <body>
-
-    <div id="debug">System Ready</div>
 
     <div id="ui-layer">
       <div id="main-menu">
@@ -49,7 +46,7 @@
         <div id="radar-center"><div id="arrow"></div></div>
         <div id="controls-container">
           <div class="btn-row"><button class="ctrl-btn" id="up">UP</button></div>
-          <div class="btn-row"><button class="ctrl-btn" id="left">LEFT</button><button class="ctrl-btn" id="freeze">FREEZE</button><button class="ctrl-btn" id="right">RIGHT</button></div>
+          <div class="btn-row"><button class="ctrl-btn" id="left">LEFT</button><button class="ctrl-btn" id="freeze" style="background:#0050ff">FREEZE</button><button class="ctrl-btn" id="right">RIGHT</button></div>
           <div class="btn-row"><button class="ctrl-btn" id="down">DOWN</button></div>
         </div>
       </div>
@@ -62,7 +59,8 @@
       <div id="car-ui">
         <button class="action-btn" onclick="adjustCarScale(1.2)">EXPAND (+)</button>
         <button class="action-btn" onclick="adjustCarScale(0.8)">SHRINK (-)</button>
-        <button class="action-btn" onclick="rotateCar(25)">ROTATE</button>
+        <button class="action-btn" onclick="rotateCar(30)">ROTATE</button>
+        <button class="action-btn web-btn" onclick="window.open('https://www.google.com', '_blank')">VISIT WEBSITE</button>
       </div>
 
       <div id="const-ui">
@@ -70,7 +68,7 @@
       </div>
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="alpha: true; colorManagement: true;">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="alpha: true;">
       <a-assets>
         <a-asset-item id="planeModel" src="plane.glb"></a-asset-item>
         <a-asset-item id="carModel" src="car.glb"></a-asset-item>
@@ -95,60 +93,52 @@
     </a-scene>
 
     <script>
-      const log = (m) => document.getElementById('debug').innerText = m;
       const plane = document.querySelector('#plane');
       const car = document.querySelector('#car');
       const winVid = document.querySelector('#winVid');
       const constVid = document.querySelector('#constVid');
       const scoreEl = document.querySelector('#score');
-
       let currentMode = 'none';
       let score = 0, isFrozen = false, move = {up:false,down:false,left:false,right:false};
 
       function switchMode(mode) {
         currentMode = mode;
-        log("Mode: " + mode);
-        
-        // Hide all UIs
-        document.getElementById('game-ui').style.display = 'none';
-        document.getElementById('car-ui').style.display = 'none';
-        document.getElementById('const-ui').style.display = 'none';
+        document.getElementById('game-ui').style.display = (mode === 'game' ? 'block' : 'none');
+        document.getElementById('car-ui').style.display = (mode === 'car' ? 'block' : 'none');
+        document.getElementById('const-ui').style.display = (mode === 'video' ? 'block' : 'none');
         document.getElementById('win-panel').style.display = 'none';
         
-        // Hide all Entities
         document.getElementById('game-entities').setAttribute('visible', mode === 'game');
         document.getElementById('car-entities').setAttribute('visible', mode === 'car');
         document.getElementById('const-video-entity').setAttribute('visible', mode === 'video');
 
-        // Stop all videos
         winVid.pause(); constVid.pause();
-        document.getElementById('win-video-entity').setAttribute('visible', 'false');
-
-        if (mode === 'game') {
-            document.getElementById('game-ui').style.display = 'block';
-            resetGame();
-        } else if (mode === 'car') {
-            document.getElementById('car-ui').style.display = 'block';
-        } else if (mode === 'video') {
-            document.getElementById('const-ui').style.display = 'block';
-        }
+        if (mode === 'game') resetGame();
 
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-' + (mode==='video'?'video':mode)).classList.add('active');
       }
 
-      // --- GAME FUNCTIONS ---
       function resetGame() {
         score = 0; scoreEl.innerText = "0"; isFrozen = false;
         plane.setAttribute('position', '0 1 -5');
         const container = document.getElementById('balloon-container');
         container.innerHTML = ''; 
-        for(let i=0; i<5; i++) {
-          const b = document.createElement('a-entity');
-          b.setAttribute('position', `${(Math.random()-0.5)*20} ${Math.random()*4+1} ${(Math.random()-0.5)*20}`);
-          b.innerHTML = `<a-sphere color="red" radius="0.4"></a-sphere><a-cone color="orange" radius-bottom="0.1" height="0.3" position="0 -0.4 0"></a-cone>`;
-          container.appendChild(b);
-        }
+        for(let i=0; i<5; i++) spawnBalloon(container);
+      }
+
+      function spawnBalloon(container) {
+        const b = document.createElement('a-entity');
+        // Logic: Distance must be between 8 and 20 units away, height between 1 and 4
+        let x = (Math.random() - 0.5) * 40;
+        let z = (Math.random() - 0.5) * 40;
+        // Ensure not too close to center (0,0,0)
+        if (Math.abs(x) < 8) x += (x < 0 ? -10 : 10);
+        if (Math.abs(z) < 8) z += (z < 0 ? -10 : 10);
+        
+        b.setAttribute('position', `${x} ${Math.random() * 3 + 1} ${z}`);
+        b.innerHTML = `<a-sphere color="red" radius="0.4"></a-sphere><a-cone color="orange" radius-bottom="0.1" height="0.3" position="0 -0.4 0"></a-cone>`;
+        container.appendChild(b);
       }
 
       function playWinVideo() {
@@ -157,21 +147,16 @@
         winVid.play();
       }
 
-      // --- CAR FUNCTIONS ---
       function rotateCar(d) { let r = car.getAttribute('rotation'); r.y += d; car.setAttribute('rotation', r); }
       function adjustCarScale(f) { let s = car.getAttribute('scale'); s.x *= f; s.y *= f; s.z *= f; car.setAttribute('scale', s); }
+      function playConstructionVideo() { document.getElementById('const-ui').style.display = 'none'; constVid.play(); }
 
-      // --- CONSTRUCTION FUNCTIONS ---
-      function playConstructionVideo() {
-        document.getElementById('const-ui').style.display = 'none';
-        constVid.play();
-      }
-
-      // --- CORE LOOP ---
       const bind = (id, dir) => {
         const btn = document.getElementById(id);
-        btn.addEventListener('touchstart', (e) => { e.preventDefault(); move[dir] = true; });
-        btn.addEventListener('touchend', () => move[dir] = false);
+        const start = (e) => { e.preventDefault(); move[dir] = true; };
+        const end = () => move[dir] = false;
+        btn.addEventListener('touchstart', start); btn.addEventListener('touchend', end);
+        btn.addEventListener('mousedown', start); btn.addEventListener('mouseup', end);
       };
       ['up', 'down', 'left', 'right'].forEach(dir => bind(dir, dir));
       document.getElementById('freeze').addEventListener('click', () => isFrozen = !isFrozen);
@@ -186,25 +171,20 @@
           pPos.x += Math.sin(rad) * 0.07; pPos.z += Math.cos(rad) * 0.07;
           plane.setAttribute('position', pPos); plane.setAttribute('rotation', pRot);
 
-          // Balloon Hits
           document.querySelectorAll('#balloon-container a-entity').forEach(b => {
             let bPos = b.getAttribute('position');
             let d = Math.sqrt(Math.pow(pPos.x-bPos.x,2)+Math.pow(pPos.y-bPos.y,2)+Math.pow(pPos.z-bPos.z,2));
             if (d < 1.0) {
               score++; scoreEl.innerText = score;
-              b.parentNode.removeChild(b); // Remove the balloon
-              if (score >= 5) {
-                isFrozen = true;
-                document.getElementById('win-panel').style.display = 'block';
-              }
+              b.parentNode.removeChild(b);
+              if (score >= 5) { isFrozen = true; document.getElementById('win-panel').style.display = 'block'; }
             }
           });
 
-          // Radar
-          let cObj = document.querySelector('#main-cam').object3D;
-          let angle = Math.atan2(pPos.x - cObj.position.x, pPos.z - cObj.position.z) * (180 / Math.PI);
-          let camRot = document.querySelector('#main-cam').getAttribute('rotation').y;
-          document.querySelector('#radar-center').style.transform = `translate(-50%, -50%) rotate(${-(angle - camRot + 180)}deg)`;
+          let cam3D = document.querySelector('#main-cam').object3D;
+          let angle = Math.atan2(pPos.x - cam3D.position.x, pPos.z - cam3D.position.z) * (180 / Math.PI);
+          let camRotY = document.querySelector('#main-cam').getAttribute('rotation').y;
+          document.querySelector('#radar-center').style.transform = `translate(-50%, -50%) rotate(${-(angle - camRotY + 180)}deg)`;
         }
         requestAnimationFrame(update);
       }
