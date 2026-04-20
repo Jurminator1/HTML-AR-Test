@@ -26,11 +26,11 @@
       .btn-row { display: flex; justify-content: center; gap: 12px; margin: 6px 0; }
       .ctrl-btn { width: 65px; height: 65px; background: rgba(0,0,0,0.8); color: white; border: 2px solid #fff; border-radius: 50%; font-weight: bold; touch-action: manipulation; }
 
-      #win-panel { top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.9); padding: 20px; border: 3px solid #ffff00; border-radius: 15px; z-index: 1100; }
+      #win-panel { top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.9); padding: 25px; border: 3px solid #ffff00; border-radius: 15px; z-index: 1100; min-width: 200px; }
       #car-ui, #const-ui { bottom: 50px; width: 100%; text-align: center; }
       
       .action-btn { padding: 12px 18px; margin: 5px; background: #00ccff; border: 2px solid white; border-radius: 10px; color: white; font-weight: bold; font-size: 12px; }
-      .dist-btn { background: #ff9900; } /* Orange for distance controls */
+      .dist-btn { background: #ff9900; } 
       .web-btn { background: #ff33bb; }
     </style>
   </head>
@@ -54,8 +54,9 @@
       </div>
 
       <div id="win-panel">
-        <h2 style="color: #ffff00; margin-top: 0;">MISSION COMPLETE!</h2>
-        <button class="action-btn" onclick="playWinVideo()">SHOW WINNING VIDEO</button>
+        <h2 style="color: #ffff00; margin-top: 0;">YOU WON!</h2>
+        <p style="color: white; font-size: 12px;">Click below to watch the video</p>
+        <button class="action-btn" onclick="playWinVideo()">▶ PLAY WIN VIDEO</button>
       </div>
 
       <div id="car-ui">
@@ -66,11 +67,11 @@
       </div>
 
       <div id="const-ui">
-        <div style="background: rgba(0,0,0,0.6); color: white; padding: 5px; margin-bottom: 5px; border-radius: 5px;">Video Distance</div>
+        <div style="background: rgba(0,0,0,0.6); color: white; padding: 5px; margin-bottom: 5px; border-radius: 5px;">Video Controls</div>
         <button class="action-btn dist-btn" onclick="adjustVideoDist(-0.5)">CLOSER</button>
         <button class="action-btn dist-btn" onclick="adjustVideoDist(0.5)">FARTHER</button>
         <br>
-        <button class="action-btn" id="play-const-btn" onclick="playConstructionVideo()">PLAY VIDEO</button>
+        <button class="action-btn" onclick="playConstructionVideo()">▶ PLAY CONSTRUCTION</button>
       </div>
     </div>
 
@@ -78,21 +79,21 @@
       <a-assets>
         <a-asset-item id="planeModel" src="plane.glb"></a-asset-item>
         <a-asset-item id="carModel" src="car.glb"></a-asset-item>
-        <video id="winVid" src="video.mp4" loop="true" crossorigin="anonymous" playsinline></video>
-        <video id="constVid" src="construction.mp4" loop="true" crossorigin="anonymous" playsinline></video>
+        <video id="winVid" src="video.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline></video>
+        <video id="constVid" src="construction.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline></video>
       </a-assets>
 
       <a-entity id="game-entities" visible="false">
         <a-entity id="plane" gltf-model="#planeModel" position="0 1 -5" scale="0.03 0.03 0.03"></a-entity>
         <a-entity id="balloon-container"></a-entity>
-        <a-video id="win-video-entity" src="#winVid" position="0 2 -4" width="3" height="1.7" visible="false"></a-video>
+        <a-video id="win-video-entity" src="#winVid" position="0 1.2 -3.5" width="3" height="1.7" visible="false"></a-video>
       </a-entity>
 
       <a-entity id="car-entities" visible="false">
         <a-entity id="car" gltf-model="#carModel" position="0 0.5 -3" scale="0.5 0.5 0.5"></a-entity>
       </a-entity>
 
-      <a-video id="const-video-entity" src="#constVid" position="0 1.5 -3" width="3" height="1.7" visible="false"></a-video>
+      <a-video id="const-video-entity" src="#constVid" position="0 1.0 -3" width="3" height="1.7" visible="false"></a-video>
 
       <a-entity camera look-controls id="main-cam"></a-entity>
       <a-light type="ambient" intensity="1.2"></a-light>
@@ -120,18 +121,20 @@
         document.getElementById('car-entities').setAttribute('visible', mode === 'car');
         constEntity.setAttribute('visible', mode === 'video');
 
-        winVid.pause(); constVid.pause();
+        // Mute and pause everything when switching
+        winVid.pause(); winVid.currentTime = 0;
+        constVid.pause(); constVid.currentTime = 0;
+        document.getElementById('win-video-entity').setAttribute('visible', 'false');
+
         if (mode === 'game') resetGame();
 
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-' + (mode==='video'?'video':mode)).classList.add('active');
       }
 
-      // --- DISTANCE LOGIC ---
       function adjustVideoDist(val) {
         let pos = constEntity.getAttribute('position');
-        pos.z += val; // Moves along Z axis
-        // Limit distance so it doesn't go behind the camera or too far away
+        pos.z += val;
         if (pos.z > -1) pos.z = -1;
         if (pos.z < -10) pos.z = -10;
         constEntity.setAttribute('position', pos);
@@ -144,11 +147,11 @@
         container.innerHTML = ''; 
         for(let i=0; i<5; i++) {
           const b = document.createElement('a-entity');
-          let x = (Math.random() - 0.5) * 40;
-          let z = (Math.random() - 0.5) * 40;
+          let x = (Math.random() - 0.5) * 35;
+          let z = (Math.random() - 0.5) * 35;
           if (Math.abs(x) < 8) x += (x < 0 ? -10 : 10);
           if (Math.abs(z) < 8) z += (z < 0 ? -10 : 10);
-          b.setAttribute('position', `${x} ${Math.random() * 3 + 1} ${z}`);
+          b.setAttribute('position', `${x} ${Math.random() * 2 + 1.2} ${z}`);
           b.innerHTML = `<a-sphere color="red" radius="0.4"></a-sphere><a-cone color="orange" radius-bottom="0.1" height="0.3" position="0 -0.4 0"></a-cone>`;
           container.appendChild(b);
         }
@@ -156,19 +159,25 @@
 
       function playWinVideo() {
         document.getElementById('win-panel').style.display = 'none';
-        document.getElementById('win-video-entity').setAttribute('visible', 'true');
-        winVid.play();
+        const ent = document.getElementById('win-video-entity');
+        ent.setAttribute('visible', 'true');
+        // Mobile browsers often require muted at first or a clear user action
+        winVid.muted = false; 
+        winVid.play().catch(e => {
+            console.log("Autoplay blocked, trying muted...");
+            winVid.muted = true;
+            winVid.play();
+        });
+      }
+
+      function playConstructionVideo() { 
+        constVid.muted = false;
+        constVid.play(); 
       }
 
       function rotateCar(d) { let r = car.getAttribute('rotation'); r.y += d; car.setAttribute('rotation', r); }
       function adjustCarScale(f) { let s = car.getAttribute('scale'); s.x *= f; s.y *= f; s.z *= f; car.setAttribute('scale', s); }
-      
-      function playConstructionVideo() { 
-        document.getElementById('play-const-btn').style.display = 'none'; 
-        constVid.play(); 
-      }
 
-      // --- CONTROLS ---
       const bind = (id, dir) => {
         const btn = document.getElementById(id);
         const start = (e) => { e.preventDefault(); move[dir] = true; };
@@ -192,7 +201,6 @@
           document.querySelectorAll('#balloon-container a-entity').forEach(b => {
             let bPos = b.getAttribute('position');
             let d = Math.sqrt(Math.pow(pPos.x-bPos.x,2)+Math.pow(pPos.y-bPos.y,2)+Math.pow(pPos.z-bPos.z,2));
-            // INCREASED COLLISION RADIUS TO 2.0 FOR EASIER COLLECTION
             if (d < 2.0) {
               score++; scoreEl.innerText = score;
               b.parentNode.removeChild(b);
