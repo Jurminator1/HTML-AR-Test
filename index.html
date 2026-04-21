@@ -6,15 +6,13 @@
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent !important; font-family: 'Segoe UI', sans-serif; }
       #ui-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
       
-      /* NAVIGATION */
       #main-menu { position: absolute; top: 15px; width: 100%; display: flex; justify-content: center; gap: 8px; pointer-events: auto; }
       .nav-btn { padding: 10px 12px; background: rgba(0,0,0,0.85); color: white; border: 2px solid #fff; border-radius: 8px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
       .nav-btn.active { background: #ffff00; color: #000; border-color: #ffff00; }
 
-      /* UI BOXES */
       #game-ui, #car-ui, #const-ui, #win-panel { display: none; position: absolute; pointer-events: auto; }
       
       #game-ui { width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; }
@@ -44,7 +42,7 @@
       </div>
 
       <div id="game-ui">
-        <div id="score-tag">PUNKTE: <span id="score">0</span>/5</div>
+        <div id="score-tag">PUNKTE: <span id="score">0</span>/10</div>
         <div id="radar-center"><div id="arrow"></div></div>
         <div id="controls-container">
           <div class="btn-row"><button class="ctrl-btn" id="up">HOCH</button></div>
@@ -54,8 +52,8 @@
       </div>
 
       <div id="win-panel">
-        <h2 style="color: #ffff00; margin-top: 0;">GEWONNEN!</h2>
-        <p style="color: white; font-size: 12px;">Klicke unten, um das Video zu starten</p>
+        <h2 style="color: #ffff00; margin-top: 0;">10 PUNKTE ERREICHT!</h2>
+        <p style="color: white; font-size: 12px;">Klicke unten zum Abspielen</p>
         <button class="action-btn" onclick="playWinVideo()">▶ VIDEO ABSPIELEN</button>
       </div>
 
@@ -124,16 +122,19 @@
         winVid.pause(); constVid.pause();
         document.getElementById('win-video-entity').setAttribute('visible', 'false');
 
-        if (mode === 'game') resetGame();
+        if (mode === 'game') {
+          // Browser-Hack: Video kurz laden, um Blockade aufzuheben
+          winVid.load();
+          resetGame();
+        }
 
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-' + (mode==='video'?'video':mode)).classList.add('active');
       }
 
-      // KORRIGIERTE ENTFERNUNGS-LOGIK
       function adjustVideoDist(val) {
         let pos = constEntity.getAttribute('position');
-        pos.z += val; // Val ist positiv für "Näher ran" (z.B. von -3 auf -2.5)
+        pos.z += val;
         if (pos.z > -1) pos.z = -1;
         if (pos.z < -10) pos.z = -10;
         constEntity.setAttribute('position', pos);
@@ -144,7 +145,8 @@
         plane.setAttribute('position', '0 1 -5');
         const container = document.getElementById('balloon-container');
         container.innerHTML = ''; 
-        for(let i=0; i<5; i++) {
+        // 10 Ballons spawnen
+        for(let i=0; i<10; i++) {
           const b = document.createElement('a-entity');
           let x = (Math.random() - 0.5) * 35;
           let z = (Math.random() - 0.5) * 35;
@@ -159,7 +161,16 @@
       function playWinVideo() {
         document.getElementById('win-panel').style.display = 'none';
         document.getElementById('win-video-entity').setAttribute('visible', 'true');
-        winVid.muted = false; winVid.play();
+        winVid.muted = false;
+        let playPromise = winVid.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.log("Fehler beim Abspielen: ", error);
+            // Wenn es fehlschlägt, versuchen wir es stumm (Safari/Chrome Fix)
+            winVid.muted = true;
+            winVid.play();
+          });
+        }
       }
 
       function playConstructionVideo() { 
@@ -195,7 +206,11 @@
             if (d < 2.0) {
               score++; scoreEl.innerText = score;
               b.parentNode.removeChild(b);
-              if (score >= 5) { isFrozen = true; document.getElementById('win-panel').style.display = 'block'; }
+              // Sieg bei 10 Punkten
+              if (score >= 10) { 
+                isFrozen = true; 
+                document.getElementById('win-panel').style.display = 'block'; 
+              }
             }
           });
 
